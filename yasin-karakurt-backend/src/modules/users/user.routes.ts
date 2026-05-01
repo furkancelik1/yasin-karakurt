@@ -1,13 +1,10 @@
 import { Router } from 'express';
-import * as userController from './user.controller';
-import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { getClients } from './user.controller';
+import { authenticate } from '../../middleware/auth.middleware';
 
 const router = Router();
 
-router.use(authenticate);
-
-router.get('/me', userController.getMyProfile);
-router.patch('/me', userController.updateMyProfile);
-router.get('/clients', authorize('TRAINER', 'ADMIN'), userController.listClients);
+// /api/v1/users/clients -> Sadece giriş yapmış ADMIN'ler
+router.get('/clients', authenticate, getClients);
 
 export default router;

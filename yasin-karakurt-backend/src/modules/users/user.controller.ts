@@ -1,30 +1,29 @@
-import { Response, NextFunction } from 'express';
-import * as userService from './user.service';
-import { AuthRequest } from '../../types';
+import { Request, Response } from 'express';
+import { prisma } from '../../config/database';
 
-export const getMyProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getClients = async (req: Request, res: Response) => {
   try {
-    const data = await userService.getProfile(req.user!.sub);
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
+    // Sadece ADMIN yetkisi olanlar görebilir güvenlik kontrolü
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ status: 'error', message: 'Bu işlem için yetkiniz yok.' });
+    }
 
-export const updateMyProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const data = await userService.updateProfile(req.user!.sub, req.body);
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
+    const clients = await prisma.user.findMany({
+      where: { role: 'CLIENT' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        profile: {
+          select: { goal: true, weight: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-export const listClients = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const data = await userService.getAllClients();
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
+    res.status(200).json({ status: 'success', data: clients });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Danışanlar getirilemedi.' });
   }
 };

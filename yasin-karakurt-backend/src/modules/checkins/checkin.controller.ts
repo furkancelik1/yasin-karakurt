@@ -1,39 +1,43 @@
-import { Response, NextFunction } from 'express';
-import * as checkInService from './checkin.service';
-import { AuthRequest } from '../../types';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 
-export const submit = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const data = await checkInService.submitCheckIn({ ...req.body, userId: req.user!.sub });
-    res.status(201).json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
+const prisma = new PrismaClient();
 
-export const getById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getAllCheckins = async (req: Request, res: Response) => {
   try {
-    const data = await checkInService.getCheckInById(req.params.id);
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
+    // Check-inleri gönderilme tarihine (submittedAt) göre en yeniden en eskiye sıralıyoruz
+    const checkins = await prisma.checkIn.findMany({
+      orderBy: {
+        submittedAt: "desc", // "createdAt" yerine şemandaki "submittedAt" kullanıldı
+      },
+      include: {
+        // User tablosunu ve onun içindeki Profile tablosunu çekiyoruz
+        user: {
+          select: {
+            id: true,
+            email: true, // User modelinde sadece email var, onu alıyoruz
+            profile: {    // İsim bilgisi Profile tablosunda olduğu için onu da include ediyoruz
+              select: {
+                firstName: true,
+                lastName: true,
+                avatarUrl: true, // İstersen profil fotoğrafını da çekebilirsin
+              }
+            }
+          },
+        },
+        photos: true, // Şemandaki CheckInPhoto ilişkisi
+      },
+    });
 
-export const myCheckIns = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const data = await checkInService.getMyCheckIns(req.user!.sub);
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const review = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const data = await checkInService.reviewCheckIn(req.params.id, req.user!.sub, req.body);
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
+    res.status(200).json({
+      success: true,
+      data: checkins,
+    });
+  } catch (error) {
+    console.error("Check-inler çekilirken hata oluştu:", error);
+    res.status(500).json({
+      success: false,
+      message: "Check-in verileri alınırken sunucu hatası oluştu.",
+    });
   }
 };
