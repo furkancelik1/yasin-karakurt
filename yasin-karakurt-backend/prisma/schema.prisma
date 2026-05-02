@@ -42,9 +42,9 @@ enum SubscriptionPlan {
 }
 
 enum CheckInStatus {
-  SUBMITTED
+  PENDING
   REVIEWED
-  APPROVED
+  COMPLETED
 }
 
 model User {
@@ -160,7 +160,7 @@ model CheckIn {
   userId      String
   programId   String?
   weekNumber  Int?
-  status      CheckInStatus @default(SUBMITTED)
+  status      CheckInStatus @default(PENDING)
   weight      Float?
   bodyFat     Float?
   notes       String?

@@ -1,26 +1,17 @@
 {
   "compilerOptions": {
-    /* Temel Ayarlar */
     "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "5.0", 
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
-    
-    /* Katı Kurallar ve Güvenlik */
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    
-    /* Geliştirme ve Debug Ayarları */
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-
-    /* Yol Tanımlamaları (baseUrl olmadan modern kullanım) */
     "paths": {
       "@/*": ["./src/*"]
     }

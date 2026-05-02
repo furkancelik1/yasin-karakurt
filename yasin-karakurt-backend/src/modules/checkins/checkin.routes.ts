@@ -1,14 +1,10 @@
-import { Router } from 'express';
-import * as checkInController from './checkin.controller';
-import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { Router } from "express";
+import { getAllCheckins, getCheckinById, updateCheckinStatus } from "./checkin.controller";
 
 const router = Router();
 
-router.use(authenticate);
-
-router.get('/my', checkInController.myCheckIns);
-router.post('/', checkInController.submit);
-router.get('/:id', checkInController.getById);
-router.patch('/:id/review', authorize('TRAINER', 'ADMIN'), checkInController.review);
+router.get("/", getAllCheckins);
+router.get("/:id", getCheckinById);
+router.patch("/:id/status", updateCheckinStatus);
 
 export default router;

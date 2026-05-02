@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Calendar, Scale, Activity, Eye, Loader2 } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 
-// Tip Tanımlamaları (TypeScript güvenliği için)
+type CheckInStatus = "PENDING" | "REVIEWED" | "COMPLETED";
+
 interface CheckIn {
   id: string;
+  status: CheckInStatus;
   weight: number;
   bodyFat: number;
   notes: string;
@@ -20,9 +23,16 @@ interface CheckIn {
   photos: { url: string }[];
 }
 
+const statusConfig: Record<CheckInStatus, { label: string; className: string }> = {
+  PENDING:   { label: "Bekliyor",   className: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+  REVIEWED:  { label: "İncelendi",  className: "bg-sky-500/15 text-sky-300 border border-sky-500/30" },
+  COMPLETED: { label: "Tamamlandı", className: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" },
+};
+
 export default function CheckinsGalleryPage() {
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchCheckins = async () => {
@@ -72,9 +82,16 @@ export default function CheckinsGalleryPage() {
 
             return (
               <div key={checkin.id} className="relative group rounded-3xl overflow-hidden bg-glass-dark border border-white/5 hover:border-gold/30 transition-all duration-500 aspect-[3/4]">
+                {/* Status Badge */}
+                <div className="absolute top-4 right-4 z-10">
+                  <span className={`text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full backdrop-blur-sm ${statusConfig[checkin.status ?? "PENDING"].className}`}>
+                    {statusConfig[checkin.status ?? "PENDING"].label}
+                  </span>
+                </div>
+
                 {/* İlk Fotoğrafı Göster */}
-                <img 
-                  src={checkin.photos[0]?.url || "https://via.placeholder.com/800x1000?text=Fotoğraf+Yok"} 
+                <img
+                  src={checkin.photos[0]?.url || "https://via.placeholder.com/800x1000?text=Fotoğraf+Yok"}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   alt="Danışan Formu"
                 />
@@ -111,7 +128,10 @@ export default function CheckinsGalleryPage() {
                     "{checkin.notes}"
                   </p>
 
-                  <button className="mt-auto py-4 bg-gold text-black rounded-xl font-bold uppercase tracking-widest hover:bg-white transition-colors">
+                  <button
+                    onClick={() => router.push(`/checkins/${checkin.id}`)}
+                    className="mt-auto py-4 bg-gold text-black rounded-xl font-bold uppercase tracking-widest hover:bg-white transition-colors"
+                  >
                     Detayı Görüntüle
                   </button>
                 </div>
