@@ -1,29 +1,34 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../../config/database';
+import { AuthRequest } from '../../types';
 
-export const getClients = async (req: Request, res: Response) => {
+export const getClients = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Sadece ADMIN yetkisi olanlar görebilir güvenlik kontrolü
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ status: 'error', message: 'Bu işlem için yetkiniz yok.' });
+      res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
+      return;
     }
 
     const clients = await prisma.user.findMany({
       where: { role: 'CLIENT' },
       select: {
         id: true,
-        name: true,
         email: true,
         createdAt: true,
         profile: {
-          select: { goal: true, weight: true }
-        }
+          select: {
+            firstName: true,
+            lastName: true,
+            weight: true,
+            fitnessGoal: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    res.status(200).json({ status: 'success', data: clients });
+    res.status(200).json({ success: true, data: clients });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Danışanlar getirilemedi.' });
+    res.status(500).json({ success: false, message: 'Danışanlar getirilemedi.' });
   }
 };

@@ -1,93 +1,94 @@
-import { Request, Response } from "express";
-import { PrismaClient, CheckInStatus } from "@prisma/client";
+import { Response } from 'express';
+import { CheckInStatus } from '@prisma/client';
+import { AuthRequest } from '../../types';
+import { AppError } from '../../middleware/error.middleware';
+import { prisma } from '../../config/database';
+import * as CheckInService from './checkin.service';
 
-const prisma = new PrismaClient();
-
-const checkinInclude = {
-  user: {
-    select: {
-      id: true,
-      email: true,
-      profile: {
-        select: {
-          firstName: true,
-          lastName: true,
-          avatarUrl: true,
-        },
-      },
-    },
-  },
-  photos: true,
-};
-
-export const getAllCheckins = async (req: Request, res: Response) => {
+export const getAllCheckins = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const checkins = await prisma.checkIn.findMany({
-      orderBy: { submittedAt: "desc" },
-      include: checkinInclude,
-    });
-
+    const checkins = await CheckInService.getTrainerCheckins();
     res.status(200).json({ success: true, data: checkins });
   } catch (error) {
-    console.error("Check-inler çekilirken hata oluştu:", error);
-    res.status(500).json({ success: false, message: "Sunucu hatası." });
+    console.error('Check-inler çekilirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
 
-export const getCheckinById = async (req: Request, res: Response) => {
+export const getAllForTrainer = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const checkins = await CheckInService.getTrainerCheckins();
+    res.status(200).json({ success: true, data: checkins });
+  } catch (error) {
+    console.error('Trainer check-inleri çekilirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+  }
+};
+
+export const getCheckinById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const checkin = await CheckInService.getCheckInById(id);
 
-    const checkin = await prisma.checkIn.findUnique({
-      where: { id },
-      include: checkinInclude,
-    });
-
-    if (!checkin) {
-      return res.status(404).json({ success: false, message: "Check-in bulunamadı." });
-    }
-
-    // Aynı kullanıcının bir önceki check-in'ini getir (kıyaslama için)
     const previousCheckin = await prisma.checkIn.findFirst({
       where: {
         userId: checkin.userId,
         submittedAt: { lt: checkin.submittedAt },
       },
-      orderBy: { submittedAt: "desc" },
+      orderBy: { submittedAt: 'desc' },
       include: { photos: true },
     });
 
-    res.status(200).json({
-      success: true,
-      data: { checkin, previousCheckin },
-    });
+    res.status(200).json({ success: true, data: { checkin, previousCheckin } });
   } catch (error) {
-    console.error("Check-in detayı çekilirken hata:", error);
-    res.status(500).json({ success: false, message: "Sunucu hatası." });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
+    console.error('Check-in detayı çekilirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
 
-export const updateCheckinStatus = async (req: Request, res: Response) => {
+export const updateCheckinStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body as { status: CheckInStatus };
 
-    const validStatuses: CheckInStatus[] = ["PENDING", "REVIEWED", "COMPLETED"];
+    const validStatuses: CheckInStatus[] = ['PENDING', 'REVIEWED', 'COMPLETED'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: "Geçersiz statü değeri." });
+      res.status(400).json({ success: false, message: 'Geçersiz statü değeri.' });
+      return;
     }
 
     const updated = await prisma.checkIn.update({
       where: { id },
       data: {
         status,
-        reviewedAt: status === "REVIEWED" || status === "COMPLETED" ? new Date() : undefined,
+        reviewedAt: status === 'REVIEWED' || status === 'COMPLETED' ? new Date() : undefined,
       },
     });
 
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    console.error("Statü güncellenirken hata:", error);
-    res.status(500).json({ success: false, message: "Sunucu hatası." });
+    console.error('Statü güncellenirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+  }
+};
+
+export const reviewCheckin = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { trainerNote, status } = req.body as { trainerNote?: string; status?: CheckInStatus };
+
+    const updated = await CheckInService.reviewCheckIn(id, { trainerNote, status });
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
+    console.error('Check-in incelenirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };

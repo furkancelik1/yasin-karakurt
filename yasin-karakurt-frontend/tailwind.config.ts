@@ -126,7 +126,8 @@ const config: Config = {
         'fade-up':        'fadeUp 0.6s ease-out forwards',
         'fade-in':        'fadeIn 0.8s ease-out forwards',
         'pulse-gold':     'pulseGold 2s ease-in-out infinite',
-        'border-flow':    'borderFlow 3s linear infinite',
+        'border-flow':         'borderFlow 3s linear infinite',
+        'neon-purple-pulse':  'neonPurplePulse 2s ease-in-out infinite',
       },
 
       keyframes: {
@@ -149,6 +150,10 @@ const config: Config = {
         borderFlow: {
           '0%':   { backgroundPosition: '0% 50%' },
           '100%': { backgroundPosition: '200% 50%' },
+        },
+        neonPurplePulse: {
+          '0%, 100%': { boxShadow: '0 0 0 1px rgba(139,92,246,0.35), 0 0 12px rgba(139,92,246,0.15)' },
+          '50%':      { boxShadow: '0 0 0 1px rgba(139,92,246,0.70), 0 0 28px rgba(139,92,246,0.45)' },
         },
       },
     },

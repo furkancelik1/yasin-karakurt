@@ -40,15 +40,25 @@ export interface Program {
   endDate?: string;
 }
 
+export type CheckInStatus = 'PENDING' | 'REVIEWED' | 'COMPLETED';
+
 export interface CheckIn {
   id: string;
   weight?: number;
   bodyFat?: number;
   notes?: string;
   trainerNote?: string;
-  status: 'SUBMITTED' | 'REVIEWED' | 'APPROVED';
+  status: CheckInStatus;
   submittedAt: string;
   photos: { id: string; url: string; angle?: string }[];
+}
+
+export interface TrainerCheckIn extends CheckIn {
+  user: {
+    id: string;
+    email: string;
+    profile: { firstName: string; lastName: string; avatarUrl?: string } | null;
+  };
 }
 
 export interface Subscription {
