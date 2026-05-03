@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useCallback, useState } from 'react';
-import { Upload, X, ImageIcon } from 'lucide-react';
+import { useCallback, useState, useEffect } from "react";
+import { Upload, X, ImageIcon } from "lucide-react";
 
 interface ImageUploadProps {
   label?: string;
@@ -13,6 +13,11 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
   const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Parent componenti sadece useEffect içinden güncelliyoruz.
+  useEffect(() => {
+    onFilesChange(previews.map((p) => p.file));
+  }, [previews, onFilesChange]);
+
   const addFiles = useCallback(
     (incoming: FileList | null) => {
       if (!incoming) return;
@@ -20,7 +25,7 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
       if (available <= 0) return;
 
       const newFiles = Array.from(incoming)
-        .filter((f) => f.type.startsWith('image/'))
+        .filter((f) => f.type.startsWith("image/"))
         .slice(0, available);
 
       if (newFiles.length === 0) return;
@@ -30,20 +35,16 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
         url: URL.createObjectURL(file),
       }));
 
-      setPreviews((prev) => {
-        const updated = [...prev, ...newPreviews];
-        onFilesChange(updated.map((p) => p.file));
-        return updated;
-      });
+      // Sadece kendi state'imizi güncelliyoruz
+      setPreviews((prev) => [...prev, ...newPreviews]);
     },
-    [maxFiles, previews.length, onFilesChange],
+    [maxFiles, previews.length]
   );
 
   const remove = (index: number) => {
     setPreviews((prev) => {
       URL.revokeObjectURL(prev[index].url);
       const updated = prev.filter((_, i) => i !== index);
-      onFilesChange(updated.map((p) => p.file));
       return updated;
     });
   };
@@ -54,7 +55,7 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
       setIsDragging(false);
       addFiles(e.dataTransfer.files);
     },
-    [addFiles],
+    [addFiles]
   );
 
   const canAdd = previews.length < maxFiles;
@@ -66,16 +67,19 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
       {/* Drop zone */}
       {canAdd && (
         <label
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
           className={[
-            'flex flex-col items-center justify-center gap-3 rounded-2xl p-8 cursor-pointer',
-            'border-2 border-dashed transition-all duration-300',
+            "flex flex-col items-center justify-center gap-3 rounded-2xl p-8 cursor-pointer",
+            "border-2 border-dashed transition-all duration-300",
             isDragging
-              ? 'border-sky-400 bg-sky-400/5 shadow-[0_0_20px_rgba(56,189,248,0.18)]'
-              : 'border-sky-500/30 bg-white/[0.02] hover:border-sky-400/60 hover:bg-sky-400/[0.04]',
-          ].join(' ')}
+              ? "border-sky-400 bg-sky-400/5 shadow-[0_0_20px_rgba(56,189,248,0.18)]"
+              : "border-sky-500/30 bg-white/[0.02] hover:border-sky-400/60 hover:bg-sky-400/[0.04]",
+          ].join(" ")}
         >
           <input
             type="file"
@@ -85,17 +89,20 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
             onChange={(e) => addFiles(e.target.files)}
           />
 
-          <div className={`p-3 rounded-full transition-colors ${isDragging ? 'bg-sky-400/15' : 'bg-white/5'}`}>
+          <div
+            className={`p-3 rounded-full transition-colors ${
+              isDragging ? "bg-sky-400/15" : "bg-white/5"
+            }`}
+          >
             <Upload
               size={22}
-              className={isDragging ? 'text-sky-400' : 'text-sky-500/60'}
+              className={isDragging ? "text-sky-400" : "text-sky-500/60"}
             />
           </div>
 
           <div className="text-center">
             <p className="text-sm text-white/70">
-              Sürükle & bırak veya{' '}
-              <span className="text-sky-400 font-medium">seç</span>
+              Sürükle & bırak veya <span className="text-sky-400 font-medium">seç</span>
             </p>
             <p className="text-xs text-ash/40 mt-1">
               PNG · JPG · WEBP &nbsp;·&nbsp; Maks. {maxFiles} fotoğraf
@@ -132,7 +139,9 @@ export function ImageUpload({ label, onFilesChange, maxFiles = 5 }: ImageUploadP
           {!canAdd && (
             <div className="aspect-square rounded-xl bg-charcoal/60 border border-white/5 flex flex-col items-center justify-center gap-1">
               <ImageIcon size={18} className="text-ash/30" />
-              <span className="text-ash/30 text-[10px] tracking-wide">Maks.</span>
+              <span className="text-ash/30 text-[10px] tracking-wide">
+                Maks.
+              </span>
             </div>
           )}
         </div>

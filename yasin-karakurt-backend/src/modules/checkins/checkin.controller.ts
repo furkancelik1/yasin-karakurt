@@ -5,6 +5,62 @@ import { AppError } from '../../middleware/error.middleware';
 import { prisma } from '../../config/database';
 import * as CheckInService from './checkin.service';
 
+export const createCheckin = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user?.id || (req as any).userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Oturum bilgisi bulunamadı.' });
+      return;
+    }
+
+    const { weight, notes } = req.body;
+
+    // Multer veya Supabase'den gelen dosyaları alıyoruz
+    const files = req.files as Express.Multer.File[];
+    
+    const photoUrls = files && files.length > 0 
+      ? files.map((file: any) => file.path || file.location || file.filename) 
+      : [];
+
+    if (photoUrls.length === 0) {
+      res.status(400).json({ success: false, message: 'En az bir fotoğraf yüklemelisiniz.' });
+      return;
+    }
+
+    // Prisma ile CheckIn ve fotoğrafları (CheckInPhoto vb.) aynı anda oluşturuyoruz
+    const newCheckin = await prisma.checkIn.create({
+      data: {
+        userId,
+        weight: parseFloat(weight),
+        notes: notes || '',
+        status: 'PENDING',
+        photos: {
+          create: photoUrls.map((url) => ({
+            url: url
+          }))
+        }
+      },
+      include: {
+        photos: true 
+      }
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Gelişim formu başarıyla iletildi!', 
+      data: newCheckin 
+    });
+
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
+    console.error('Check-in oluşturulurken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+  }
+};
+
 export const getAllCheckins = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const checkins = await CheckInService.getTrainerCheckins();

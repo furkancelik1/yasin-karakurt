@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
   withCredentials: false,
@@ -66,7 +66,10 @@ api.interceptors.response.use(
       processQueue(refreshError as AxiosError, null);
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      if (typeof window !== 'undefined') window.location.href = '/giris';
+      
+      // GÜNCELLENEN KISIM: '/giris' rotası '/login' olarak değiştirildi
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
