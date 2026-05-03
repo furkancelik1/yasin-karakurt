@@ -1,10 +1,9 @@
-import express from "express";
-import cors from "cors";
+import { Router } from 'express';
+import { getClients } from './user.controller';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
 
-// DİKKAT: Dosyamızın adı checkin.routes.ts olsa bile, import ederken SONUNU .js YAPIYORUZ
-const app = express();
+const router = Router();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
-app.use(express.json());
+router.get('/clients', authenticate, authorize('TRAINER', 'ADMIN'), getClients);
 
-export default app;
+export default router;

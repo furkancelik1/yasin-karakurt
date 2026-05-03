@@ -4,7 +4,7 @@ import { AuthRequest } from '../../types';
 
 export const getClients = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (req.user?.role !== 'ADMIN') {
+    if (!req.user || !['TRAINER', 'ADMIN'].includes(req.user.role)) {
       res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
       return;
     }
@@ -14,13 +14,21 @@ export const getClients = async (req: AuthRequest, res: Response): Promise<void>
       select: {
         id: true,
         email: true,
+        isActive: true,
         createdAt: true,
         profile: {
           select: {
             firstName: true,
             lastName: true,
-            weight: true,
+            avatarUrl: true,
             fitnessGoal: true,
+          },
+        },
+        subscription: {
+          select: {
+            plan: true,
+            status: true,
+            endDate: true,
           },
         },
       },
