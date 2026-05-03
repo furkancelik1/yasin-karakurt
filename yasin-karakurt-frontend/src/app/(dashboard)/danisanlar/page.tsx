@@ -1,5 +1,5 @@
 'use client';
-
+import { YeniDanisanModal } from "@/components/dashboard/danisanlar/YeniDanisanModal";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
