@@ -6,12 +6,13 @@ import { Users, ClipboardList, Dumbbell, Settings, BarChart, LogOut } from "luci
 
 export const Sidebar = () => {
   const pathname = usePathname();
-  const { user, logout } = useAuth(); // Zustand store'dan user ve logout'u alıyoruz
+  const { user, logout } = useAuth();
 
-  const adminLinks = [
-    { name: "Danışanlarım", href: "/dashboard/danisanlar", icon: Users },
-    { name: "Gelen Check-inler", href: "/dashboard/checkinler", icon: ClipboardList },
-    { name: "Paket Yönetimi", href: "/dashboard/paketler", icon: Dumbbell },
+  const isTrainerOrAdmin = user?.role === "TRAINER" || user?.role === "ADMIN";
+
+  const trainerLinks = [
+    { name: "Danışanlar", href: "/danisanlar", icon: Users },
+    { name: "Check-inler", href: "/checkins", icon: ClipboardList },
   ];
 
   const clientLinks = [
@@ -21,7 +22,7 @@ export const Sidebar = () => {
     { name: "Beslenme", href: "/dashboard/beslenme", icon: ClipboardList },
   ];
 
-  const links = user?.role === "ADMIN" ? adminLinks : clientLinks;
+  const links = isTrainerOrAdmin ? trainerLinks : clientLinks;
 
   return (
     <aside className="w-64 min-h-screen bg-charcoal border-r border-gold/10 p-6 flex flex-col justify-between fixed left-0 top-0 z-50">

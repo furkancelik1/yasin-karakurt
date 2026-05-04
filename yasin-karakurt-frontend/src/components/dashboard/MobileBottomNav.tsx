@@ -2,19 +2,31 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Dumbbell, Salad, TrendingUp, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { LayoutDashboard, Dumbbell, Salad, TrendingUp, Settings, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const NAV_ITEMS = [
-  { href: '/dashboard',          icon: LayoutDashboard, label: 'Genel'      },
-  { href: '/dashboard/program',  icon: Dumbbell,        label: 'Program'    },
-  { href: '/dashboard/beslenme', icon: Salad,           label: 'Beslenme'   },
-  { href: '/dashboard/gelisim',  icon: TrendingUp,      label: 'Gelişim'    },
-  { href: '/dashboard/ayarlar',  icon: Settings,        label: 'Ayarlar'    },
-];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const isTrainerOrAdmin = user?.role === "TRAINER" || user?.role === "ADMIN";
+
+  const trainerNav = [
+    { href: '/danisanlar',     icon: Users,          label: 'Danışanlar' },
+    { href: '/checkins',       icon: TrendingUp,     label: 'Check-inler' },
+    { href: '/dashboard/ayarlar', icon: Settings,    label: 'Ayarlar'    },
+  ];
+
+  const clientNav = [
+    { href: '/dashboard',      icon: LayoutDashboard, label: 'Genel'      },
+    { href: '/dashboard/program',  icon: Dumbbell,    label: 'Program'    },
+    { href: '/dashboard/beslenme', icon: Salad,      label: 'Beslenme'   },
+    { href: '/dashboard/gelisim',  icon: TrendingUp,  label: 'Gelişim'    },
+    { href: '/dashboard/ayarlar',  icon: Settings,   label: 'Ayarlar'    },
+  ];
+
+  const navItems = isTrainerOrAdmin ? trainerNav : clientNav;
 
   const isActive = (href: string) =>
     href === '/dashboard' ? pathname === href : pathname.startsWith(href);
@@ -22,7 +34,7 @@ export function MobileBottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/5 bg-obsidian/95 backdrop-blur-xl">
       <div className="flex items-center justify-around px-2 py-2 pb-safe">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
