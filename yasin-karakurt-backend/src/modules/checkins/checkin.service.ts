@@ -62,6 +62,14 @@ export const getTrainerCheckins = async () => {
   });
 };
 
+export const getCheckInsByUserId = async (userId: string) => {
+  return prisma.checkIn.findMany({
+    where: { userId },
+    include: { photos: true, user: { include: { profile: true } } },
+    orderBy: { submittedAt: 'desc' },
+  });
+};
+
 export const reviewCheckIn = async (
   id: string,
   data: { trainerNote?: string; status?: CheckInStatus }

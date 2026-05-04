@@ -163,3 +163,24 @@ export const reviewCheckin = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
+
+export const getCheckInsByUserId = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
+      return;
+    }
+
+    const checkins = await CheckInService.getCheckInsByUserId(userId);
+    res.status(200).json({ success: true, data: checkins });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
+    console.error('Check-inler çekilirken hata:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+  }
+};

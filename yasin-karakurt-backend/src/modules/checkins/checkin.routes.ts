@@ -5,20 +5,20 @@ import {
   getCheckinById,
   updateCheckinStatus,
   reviewCheckin,
-  createCheckin // 1. POST işlemini yapacak controller fonksiyonunu ekle
+  createCheckin,
+  getCheckInsByUserId
 } from './checkin.controller';
 import { authenticate, authorize } from '../../middleware/auth.middleware';
-// 2. Fotoğraf yüklemek için upload middleware'ini dahil et (yolunu kendi projene göre teyit et)
 import { upload } from '../../middleware/upload.middleware'; 
 
 const router = Router();
 
 // Trainer-specific routes
 router.get('/trainer', authenticate, authorize('TRAINER'), getAllForTrainer);
+router.get('/client/:userId', authenticate, authorize('TRAINER'), getCheckInsByUserId);
 router.patch('/:id/review', authenticate, authorize('TRAINER'), reviewCheckin);
 
-// Danışan (Client) için POST rotası - EKSİK OLAN BUYDU!
-// "photos" frontend'den gelen formData'daki key adıyla aynı olmalı.
+// Danışan (Client) için POST rotası
 router.post('/', authenticate, upload.array('photos', 5), createCheckin); 
 
 // General routes

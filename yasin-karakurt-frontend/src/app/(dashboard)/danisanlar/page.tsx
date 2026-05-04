@@ -1,5 +1,4 @@
 'use client';
-import { YeniDanisanModal } from "@/components/dashboard/danisanlar/YeniDanisanModal";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -388,7 +387,7 @@ export default function DanisanlarPage() {
               <ClientRow
                 key={client.id}
                 client={client}
-                onView={() => router.push('/checkins')}
+                onView={() => router.push(`/danisanlar/${client.id}`)}
               />
             ))}
           </AnimatePresence>
