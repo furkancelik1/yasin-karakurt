@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import path from 'path';
 import { CheckInStatus } from '@prisma/client';
 import { AuthRequest } from '../../types';
 import { AppError } from '../../middleware/error.middleware';
@@ -7,36 +8,50 @@ import * as CheckInService from './checkin.service';
 
 export const createCheckin = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?.id || (req as any).userId;
+    const userPayload = req.user;
+    const userId = userPayload?.sub;
+
     if (!userId) {
       res.status(401).json({ success: false, message: 'Oturum bilgisi bulunamadı.' });
       return;
     }
 
     const { weight, notes } = req.body;
-
-    // Multer veya Supabase'den gelen dosyaları alıyoruz
     const files = req.files as Express.Multer.File[];
-    
-    const photoUrls = files && files.length > 0 
-      ? files.map((file: any) => file.path || file.location || file.filename) 
-      : [];
 
-    if (photoUrls.length === 0) {
+    if (!files || files.length === 0) {
       res.status(400).json({ success: false, message: 'En az bir fotoğraf yüklemelisiniz.' });
       return;
     }
 
-    // Prisma ile CheckIn ve fotoğrafları (CheckInPhoto vb.) aynı anda oluşturuyoruz
+    const photoUrls = files
+      .map((file: any) => {
+        const fullPath = file.path;
+        if (!fullPath) return null;
+        return '/uploads/checkins/' + path.basename(fullPath);
+      })
+      .filter((url): url is string => typeof url === 'string' && url.length > 0);
+
+    if (photoUrls.length === 0) {
+      res.status(400).json({ success: false, message: 'Fotoğraflar yüklenirken bir sorun oluştu.' });
+      return;
+    }
+
+    const parsedWeight = weight ? parseFloat(weight) : null;
+    if (weight && isNaN(parsedWeight as number)) {
+      res.status(400).json({ success: false, message: 'Geçersiz kilo değeri.' });
+      return;
+    }
+
     const newCheckin = await prisma.checkIn.create({
       data: {
         userId,
-        weight: parseFloat(weight),
+        weight: parsedWeight,
         notes: notes || '',
         status: 'PENDING',
         photos: {
           create: photoUrls.map((url) => ({
-            url: url
+            url
           }))
         }
       },
