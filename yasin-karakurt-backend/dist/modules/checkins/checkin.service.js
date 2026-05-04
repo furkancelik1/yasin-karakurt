@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reviewCheckIn = exports.getTrainerCheckins = exports.getMyCheckIns = exports.getCheckInById = exports.submitCheckIn = void 0;
+exports.reviewCheckIn = exports.getCheckInsByUserId = exports.getTrainerCheckins = exports.getMyCheckIns = exports.getCheckInById = exports.submitCheckIn = void 0;
 const database_1 = require("../../config/database");
 const error_middleware_1 = require("../../middleware/error.middleware");
 const checkinInclude = {
@@ -55,6 +55,14 @@ const getTrainerCheckins = async () => {
     });
 };
 exports.getTrainerCheckins = getTrainerCheckins;
+const getCheckInsByUserId = async (userId) => {
+    return database_1.prisma.checkIn.findMany({
+        where: { userId },
+        include: { photos: true, user: { include: { profile: true } } },
+        orderBy: { submittedAt: 'desc' },
+    });
+};
+exports.getCheckInsByUserId = getCheckInsByUserId;
 const reviewCheckIn = async (id, data) => {
     const checkIn = await database_1.prisma.checkIn.findUnique({ where: { id } });
     if (!checkIn)

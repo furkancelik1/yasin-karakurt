@@ -12,11 +12,24 @@ import {
   Activity,
   Zap,
   Flame,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { StatCard } from '@/components/dashboard/StatCard';
 import api from '@/lib/api';
 import type { TrainerCheckIn } from '@/types';
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface DashboardStats {
+  activeClients: number;
+  pendingReviews: number;
+  todaySubmissions: number;
+}
+
+interface DashboardStatsResponse {
+  success: boolean;
+  data: DashboardStats;
+}
 
 // ── Animation variants ────────────────────────────────────────────────────────
 const pageVariants = {
@@ -50,20 +63,25 @@ function formatTodayTR(): string {
 function TrainerDashboard() {
   const router = useRouter();
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [checkins, setCheckins] = useState<TrainerCheckIn[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .get<{ success: boolean; data: TrainerCheckIn[] }>('/checkins/trainer')
-      .then(({ data }) => { if (data.success) setCheckins(data.data ?? []); })
+    Promise.all([
+      api.get<DashboardStatsResponse>('/dashboard/stats'),
+      api.get<{ success: boolean; data: TrainerCheckIn[] }>('/checkins/trainer'),
+    ])
+      .then(([statsRes, checkinsRes]) => {
+        if (statsRes.data.success) setStats(statsRes.data.data);
+        if (checkinsRes.data.success) setCheckins(checkinsRes.data.data ?? []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const pending        = checkins.filter((c) => c.status === 'PENDING');
-  const reviewed       = checkins.filter((c) => c.status !== 'PENDING');
-  const uniqueClients  = new Set(checkins.map((c) => c.user.id)).size;
+  const pending = checkins.filter((c) => c.status === 'PENDING');
+  const reviewed = checkins.filter((c) => c.status !== 'PENDING');
   const completionRate = checkins.length > 0
     ? Math.round((reviewed.length / checkins.length) * 100)
     : 0;
@@ -72,7 +90,7 @@ function TrainerDashboard() {
     ? `${user.profile.firstName} ${user.profile.lastName}`
     : 'Yasin Hoca';
 
-  const hasPending = !loading && pending.length > 0;
+  const hasPending = !loading && (stats?.pendingReviews ?? 0) > 0;
 
   return (
     <motion.div
@@ -96,86 +114,93 @@ function TrainerDashboard() {
       {/* ── Stat Cards ── */}
       <motion.div
         variants={statGridVariants}
-        className="grid grid-cols-1 sm:grid-cols-3 gap-5"
+        className="grid grid-cols-1 md:grid-cols-3 gap-5"
       >
-        {/* Pending — neon purple pulse when count > 0 */}
+        {/* Aktif Danışanlar */}
+        <motion.div variants={statCardVariants}>
+          {loading ? (
+            <div className="bg-charcoal/60 border border-white/10 p-6 rounded-3xl space-y-4 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-white/5 rounded-2xl w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/10 rounded" />
+                <div className="h-8 w-16 bg-white/10 rounded" />
+              </div>
+            </div>
+          ) : (
+            <StatCard
+              title="Aktif Danışanlar"
+              value={stats?.activeClients ?? 0}
+              icon={<Users size={20} className="text-gold" />}
+            />
+          )}
+        </motion.div>
+
+        {/* Bekleyen Formlar */}
         <motion.div
           variants={statCardVariants}
-          className={[
-            'rounded-3xl transition-all duration-300',
-            hasPending ? 'animate-neon-purple-pulse' : '',
-          ].join(' ')}
+          className={hasPending ? 'animate-neon-purple-pulse' : ''}
         >
-          <div className={[
-            'bg-charcoal/60 backdrop-blur-sm border p-6 rounded-3xl space-y-4 shadow-xl group',
-            hasPending
-              ? 'border-violet-500/50'
-              : 'border-gold/10 hover:border-gold/25',
-          ].join(' ')}>
-            <div className="flex items-start justify-between">
-              <div className={`p-3 rounded-2xl ${hasPending ? 'bg-violet-500/10' : 'bg-white/5'}`}>
-                <ClipboardList
-                  size={20}
-                  className={hasPending ? 'text-violet-300' : 'text-orange-400'}
-                />
+          {loading ? (
+            <div className="bg-charcoal/60 border border-white/10 p-6 rounded-3xl space-y-4 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-white/5 rounded-2xl w-10 h-10" />
               </div>
-              {hasPending && (
-                <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40">
-                  Kritik
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-ash/50 text-xs uppercase tracking-widest font-bold">
-                Bekleyen Check-in
-              </p>
-              <p className="text-4xl font-display text-white mt-1">
-                {loading ? '—' : pending.length}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Active clients */}
-        <motion.div variants={statCardVariants}>
-          <StatCard
-            title="Aktif Danışanlar"
-            value={loading ? '—' : uniqueClients}
-            icon={<Users size={20} className="text-gold" />}
-            trend="Toplam"
-          />
-        </motion.div>
-
-        {/* Completion rate */}
-        <motion.div variants={statCardVariants}>
-          <div className="bg-charcoal/60 backdrop-blur-sm border border-gold/10 hover:border-gold/25 p-6 rounded-3xl space-y-4 shadow-xl group transition-all duration-300">
-            <div className="flex items-start justify-between">
-              <div className="p-3 bg-sky-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <BarChart3 size={20} className="text-sky-400" />
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/10 rounded" />
+                <div className="h-8 w-16 bg-white/10 rounded" />
               </div>
-              <span className="text-xs font-medium text-sky-300 bg-sky-500/10 px-2 py-1 rounded-full uppercase tracking-tighter border border-sky-500/20">
-                Haftalık
-              </span>
             </div>
-            <div>
-              <p className="text-ash/50 text-xs uppercase tracking-widest font-bold">
-                İnceleme Oranı
-              </p>
-              <p className="text-4xl font-display text-white mt-1">
-                {loading ? '—' : `%${completionRate}`}
-              </p>
-              {!loading && checkins.length > 0 && (
-                <div className="mt-3 w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-sky-400 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${completionRate}%` }}
-                    transition={{ duration: 1.2, delay: 0.6, ease: 'easeOut' }}
+          ) : (
+            <div className={[
+              'bg-charcoal/60 backdrop-blur-sm border p-6 rounded-3xl space-y-4 shadow-xl group',
+              hasPending ? 'border-violet-500/50' : 'border-gold/10 hover:border-gold/25',
+            ].join(' ')}>
+              <div className="flex items-start justify-between">
+                <div className={`p-3 rounded-2xl ${hasPending ? 'bg-violet-500/10' : 'bg-white/5'}`}>
+                  <ClipboardList
+                    size={20}
+                    className={hasPending ? 'text-violet-300' : 'text-orange-400'}
                   />
                 </div>
-              )}
+                {hasPending && (
+                  <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40">
+                    Kritik
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="text-ash/50 text-xs uppercase tracking-widest font-bold">
+                  Bekleyen Formlar
+                </p>
+                <p className="text-4xl font-display text-white mt-1">
+                  {stats?.pendingReviews ?? 0}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+        </motion.div>
+
+        {/* Bugünkü Bildirimler */}
+        <motion.div variants={statCardVariants}>
+          {loading ? (
+            <div className="bg-charcoal/60 border border-white/10 p-6 rounded-3xl space-y-4 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-white/5 rounded-2xl w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/10 rounded" />
+                <div className="h-8 w-16 bg-white/10 rounded" />
+              </div>
+            </div>
+          ) : (
+            <StatCard
+              title="Bugünkü Bildirimler"
+              value={stats?.todaySubmissions ?? 0}
+              icon={<TrendingUp size={20} className="text-gold" />}
+            />
+          )}
         </motion.div>
       </motion.div>
 
@@ -198,7 +223,7 @@ function TrainerDashboard() {
               </h2>
               <p className="text-ash/50 text-sm mt-1 font-light">
                 {hasPending
-                  ? `${pending.length} danışanın formu incelemenizi bekliyor`
+                  ? `${stats?.pendingReviews ?? 0} danışanın formu incelemenizi bekliyor`
                   : 'Tüm check-in formlarını görüntüle ve geri bildirim gönder'}
               </p>
             </div>

@@ -2,11 +2,14 @@ import { Router } from 'express';
 import authRoutes from '../modules/auth/auth.routes';
 import checkinRoutes from '../modules/checkins/checkin.routes';
 import userRoutes from '../modules/users/user.routes';
+import { getDashboardStats } from '../modules/dashboard/dashboard.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/checkins', checkinRoutes);
 router.use('/users', userRoutes);
+router.get('/dashboard/stats', authenticate, getDashboardStats);
 
 export default router;

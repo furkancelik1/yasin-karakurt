@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reviewCheckin = exports.updateCheckinStatus = exports.getCheckinById = exports.getAllForTrainer = exports.getAllCheckins = exports.createCheckin = void 0;
+exports.getCheckInsByUserId = exports.reviewCheckin = exports.updateCheckinStatus = exports.getCheckinById = exports.getAllForTrainer = exports.getAllCheckins = exports.createCheckin = void 0;
 const path_1 = __importDefault(require("path"));
 const error_middleware_1 = require("../../middleware/error.middleware");
 const database_1 = require("../../config/database");
@@ -191,3 +191,23 @@ const reviewCheckin = async (req, res) => {
     }
 };
 exports.reviewCheckin = reviewCheckin;
+const getCheckInsByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
+            return;
+        }
+        const checkins = await CheckInService.getCheckInsByUserId(userId);
+        res.status(200).json({ success: true, data: checkins });
+    }
+    catch (error) {
+        if (error instanceof error_middleware_1.AppError) {
+            res.status(error.statusCode).json({ success: false, message: error.message });
+            return;
+        }
+        console.error('Check-inler çekilirken hata:', error);
+        res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+    }
+};
+exports.getCheckInsByUserId = getCheckInsByUserId;
