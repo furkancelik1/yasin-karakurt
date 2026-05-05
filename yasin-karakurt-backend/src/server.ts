@@ -1,6 +1,6 @@
 import app from './app';
 import { env } from './config/env';
-import { prisma } from './config/database';
+import prisma from './config/database'; // <-- DÜZELTME: Süslü parantezleri kaldırdık
 
 const start = async () => {
   try {

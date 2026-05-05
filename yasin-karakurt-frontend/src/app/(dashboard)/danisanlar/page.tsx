@@ -92,9 +92,11 @@ function applyFilter(
 function ClientRow({
   client,
   onView,
+  onAssignProgram,
 }: {
   client: ClientUser;
   onView: () => void;
+  onAssignProgram: () => void;
 }) {
   const name    = client.profile
     ? `${client.profile.firstName} ${client.profile.lastName}`
@@ -192,23 +194,16 @@ function ClientRow({
         <button
           onClick={onView}
           title="İncele"
-          className="p-2 rounded-lg text-ash/50 hover:text-sky-400 hover:bg-sky-400/10 transition-colors"
+          className="p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 transition-colors"
         >
           <Eye size={15} />
         </button>
         <button
-          onClick={() => toast.info('Düzenleme özelliği yakında aktif olacak.')}
-          title="Düzenle"
-          className="p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 transition-colors"
+          onClick={onAssignProgram}
+          title="Program Atama"
+          className="p-2 rounded-lg text-ash/50 hover:text-sky-400 hover:bg-sky-400/10 transition-colors"
         >
-          <Pencil size={15} />
-        </button>
-        <button
-          onClick={() => toast.info('Silme işlemi yakında aktif olacak.')}
-          title="Sil"
-          className="p-2 rounded-lg text-ash/50 hover:text-rose-400 hover:bg-rose-400/10 transition-colors"
-        >
-          <Trash2 size={15} />
+          <Plus size={15} />
         </button>
       </div>
     </motion.div>

@@ -1,12 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import { env } from './env';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+// Global objeye prisma tipini ekliyoruz
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+// Eğer globalde varsa onu kullan, yoksa yeni oluştur
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: ['query', 'error', 'warn'],
   });
 
-if (env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Development ortamındaysak bağlantıyı globalde sakla
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+export default prisma;
