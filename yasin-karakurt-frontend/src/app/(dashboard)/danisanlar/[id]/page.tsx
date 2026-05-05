@@ -166,7 +166,7 @@ function ReviewModal({
 }: { 
   checkinId: string; 
   onClose: () => void; 
-  onSuccess: () => void;
+  onSuccess: (trainerNote: string) => void;
 }) {
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,12 +174,12 @@ function ReviewModal({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await api.patch(`/checkins/${checkinId}/review`, { 
+      const response = await api.patch<{ success: boolean; data: CheckIn }>(`/checkins/${checkinId}/review`, { 
         trainerNote: note,
         status: 'REVIEWED'
       });
       toast.success('İnceleme kaydedildi.');
-      onSuccess();
+      onSuccess(note);
       onClose();
     } catch (error) {
       toast.error('İnceleme kaydedilirken hata oluştu.');
@@ -377,10 +377,10 @@ export default function ClientDetailPage() {
     if (clientId) fetchData();
   }, [clientId]);
 
-  const handleReviewSuccess = () => {
+  const handleReviewSuccess = (trainerNote: string) => {
     setCheckins(prev => prev.map(c => 
       c.id === reviewingId 
-        ? { ...c, status: 'REVIEWED' as const, reviewedAt: new Date().toISOString() }
+        ? { ...c, status: 'REVIEWED' as const, reviewedAt: new Date().toISOString(), trainerNote }
         : c
     ));
   };
