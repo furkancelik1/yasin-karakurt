@@ -43,7 +43,10 @@ export const Sidebar = () => {
         >
           <Menu size={24} />
         </button>
-        <span className="text-lg font-serif text-gold tracking-widest">YK PLATFORM</span>
+        <div className="flex flex-col items-center">
+          <span className="text-lg font-display font-bold text-gold tracking-wide">YASİN</span>
+          <span className="text-[10px] font-serif text-gold/80 tracking-[0.3em]">KARAKURT</span>
+        </div>
         <div className="w-10" />
       </header>
 
@@ -63,8 +66,10 @@ export const Sidebar = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex w-64 min-h-screen bg-charcoal border-r border-gold/10 p-6 flex-col justify-between fixed left-0 top-0 z-50">
         <div className="space-y-8">
-          <div className="text-2xl font-serif text-gold tracking-widest text-center mt-4">
-            YK PLATFORM
+          <div className="text-center mt-4">
+            <span className="text-3xl font-display font-bold text-gold tracking-wide block">YASİN</span>
+            <span className="text-sm font-serif text-gold/80 tracking-[0.35em]">KARAKURT</span>
+            <span className="text-[10px] font-bold text-gold/50 tracking-widest block mt-1">COACHING</span>
           </div>
           
           <nav className="flex flex-col gap-2">
@@ -119,8 +124,9 @@ export const Sidebar = () => {
           >
             <div className="space-y-8">
               <div className="flex items-center justify-between">
-                <div className="text-xl font-serif text-gold tracking-widest">
-                  YK PLATFORM
+                <div className="flex flex-col">
+                  <span className="text-xl font-display font-bold text-gold tracking-wide">YASİN</span>
+                  <span className="text-xs font-serif text-gold/80 tracking-[0.25em]">KARAKURT</span>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}

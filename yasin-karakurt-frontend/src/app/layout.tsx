@@ -17,8 +17,8 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Yasin Karakurt | Premium Personal Training',
-    template: '%s | Yasin Karakurt',
+    default: 'Yasin Karakurt Coaching | Premium Fitness Management',
+    template: '%s | Yasin Karakurt Coaching',
   },
   description:
     'Bilimsel antrenman metodolojisi ve kişiselleştirilmiş beslenme programlarıyla vücudunu dönüştür.',
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
-    title: 'Yasin Karakurt | Premium Personal Training',
+    title: 'Yasin Karakurt Coaching | Premium Fitness Management',
     description: 'Bilimsel antrenman metodolojisi ile vücudunu dönüştür.',
-    siteName: 'Yasin Karakurt',
+    siteName: 'Yasin Karakurt Coaching',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Yasin Karakurt | Premium Personal Training',
+    title: 'Yasin Karakurt Coaching | Premium Fitness Management',
   },
   robots: { index: true, follow: true },
 };

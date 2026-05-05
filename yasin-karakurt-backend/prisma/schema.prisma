@@ -258,7 +258,9 @@ model Notification {
   userId    String
   title     String
   message   String
+  type      String   @default("GENERAL") // 'PROGRAM_ASSIGNED', 'CHECKIN_RECEIVED', etc.
   isRead    Boolean  @default(false)
+  link      String?  // Bildirime tıklandığında gidilecek sayfa
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
