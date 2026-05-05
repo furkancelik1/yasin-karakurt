@@ -509,9 +509,18 @@ export default function DanisanlarPage() {
 
   useEffect(() => {
     api
-      .get<{ success: boolean; data: ClientUser[] }>('/users/clients')
-      .then(({ data }) => { if (data.success) setClients(data.data ?? []); })
-      .catch(console.error)
+      .get<{ success: boolean; data: ClientUser[] }>('/users/clients', { cache: 'no-store' })
+      .then(({ data }) => {
+        console.log('[Danisanlar] API Response:', data);
+        if (data.success) {
+          setClients(data.data ?? []);
+        } else {
+          console.error('[Danisanlar] API success false:', data);
+        }
+      })
+      .catch((err) => {
+        console.error('[Danisanlar] API Error:', err.response?.data || err.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -48,14 +48,31 @@ export const assignProgram = async (req: AuthRequest, res: Response, next: NextF
 export const getMyPrograms = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.sub;
-    console.log('[getMyPrograms] User ID from JWT:', userId);
+    const userRole = req.user!.role;
+    console.log('[getMyPrograms] User ID:', userId, 'Role:', userRole);
     
-    const programs = await prisma.userProgram.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    let programs;
 
-    console.log('[getMyPrograms] Found programs:', programs.length);
+    if (userRole === 'ADMIN' || userRole === 'TRAINER') {
+      // Admin/Trainer: Show programs assigned to clients (all programs)
+      programs = await prisma.userProgram.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { email: true, profile: { select: { firstName: true, lastName: true } } }
+          }
+        }
+      });
+      console.log('[getMyPrograms] Trainer/Admin - Found all programs:', programs.length);
+    } else {
+      // Client: Show only their own programs
+      programs = await prisma.userProgram.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      console.log('[getMyPrograms] Client - Found programs:', programs.length);
+    }
+
     res.status(200).json({ success: true, data: programs });
   } catch (error) {
     console.error('Program getirme hatası:', error);
