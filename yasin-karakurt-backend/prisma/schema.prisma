@@ -64,6 +64,7 @@ model User {
   checkIns      CheckIn[]
   subscription  Subscription?
   notifications Notification[]
+  userPrograms  UserProgram[]
 
   @@map("users")
 }
@@ -107,6 +108,33 @@ model Program {
   checkIns    CheckIn[]
 
   @@map("programs")
+}
+
+enum ProgramType {
+  TRAINING
+  NUTRITION
+}
+
+enum ProgramContentType {
+  TEXT
+  FILE
+}
+
+model UserProgram {
+  id          String             @id @default(cuid())
+  userId      String
+  type        ProgramType
+  title       String
+  content     String?
+  contentType ProgramContentType @default(TEXT)
+  fileUrl     String?
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_programs")
 }
 
 model ProgramWeek {

@@ -35,11 +35,17 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const programController = __importStar(require("./program.controller"));
+const userProgramController = __importStar(require("./userProgram.controller"));
 const auth_middleware_1 = require("../../middleware/auth.middleware");
+const upload_middleware_1 = require("../../middleware/upload.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticate);
 router.get('/my', programController.myPrograms);
 router.get('/:id', programController.getById);
 router.post('/', (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), programController.create);
 router.patch('/:id', (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), programController.update);
+router.get('/client/:userId', (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), userProgramController.getUserPrograms);
+router.delete('/:id', (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), userProgramController.deleteUserProgram);
+router.post('/assign', (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), upload_middleware_1.upload.single('file'), userProgramController.assignProgram);
+router.get('/my/programs', userProgramController.getMyPrograms);
 exports.default = router;

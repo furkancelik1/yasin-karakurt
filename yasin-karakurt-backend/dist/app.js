@@ -20,6 +20,7 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 app.use('/uploads/checkins', express_1.default.static(path_1.default.join(__dirname, '../uploads/checkins')));
+app.use('/uploads/programs', express_1.default.static(path_1.default.join(__dirname, '../uploads/programs')));
 const limiter = (0, express_rate_limit_1.default)({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api', limiter);
 app.get('/health', (_req, res) => {

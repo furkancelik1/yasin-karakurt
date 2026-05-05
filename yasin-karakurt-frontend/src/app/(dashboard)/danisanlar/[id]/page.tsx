@@ -16,6 +16,11 @@ import {
   Clock,
   CheckCircle2,
   Eye,
+  Dumbbell,
+  Utensils,
+  Plus,
+  FileText,
+  Download,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -52,6 +57,19 @@ interface ClientUser {
   email: string;
   isActive: boolean;
   profile: UserProfile | null;
+}
+
+interface UserProgram {
+  id: string;
+  userId: string;
+  type: 'TRAINING' | 'NUTRITION';
+  title: string;
+  content: string | null;
+  contentType: 'TEXT' | 'FILE';
+  fileUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 function formatDate(dateStr: string): string {
@@ -355,6 +373,8 @@ export default function ClientDetailPage() {
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [programs, setPrograms] = useState<UserProgram[]>([]);
+  const [assigningType, setAssigningType] = useState<'TRAINING' | 'NUTRITION' | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -487,6 +507,77 @@ export default function ClientDetailPage() {
           <p className="text-white/80 font-light">{client.profile.fitnessGoal}</p>
         </div>
       )}
+
+      <div className="border-t border-gold/10 pt-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-display text-white uppercase tracking-wide flex items-center gap-2">
+            <Dumbbell size={18} className="text-gold" />
+            Program Yönetimi
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAssigningType('TRAINING')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold/20 bg-gold/10 text-gold hover:bg-gold/20 text-xs font-bold uppercase tracking-widest transition-colors"
+            >
+              <Dumbbell size={14} /> Antrenman
+            </button>
+            <button
+              onClick={() => setAssigningType('NUTRITION')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold uppercase tracking-widest transition-colors"
+            >
+              <Utensils size={14} /> Beslenme
+            </button>
+          </div>
+        </div>
+
+        {programs.length === 0 ? (
+          <div className="text-center py-8 bg-charcoal/20 border border-white/5 rounded-2xl">
+            <p className="text-ash/30 font-display italic">Henüz program atanmamış.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {programs.map((program) => (
+              <div
+                key={program.id}
+                className={`p-4 rounded-2xl border ${
+                  program.type === 'TRAINING'
+                    ? 'bg-charcoal/40 border-gold/10'
+                    : 'bg-charcoal/40 border-emerald-500/10'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  {program.type === 'TRAINING' ? (
+                    <Dumbbell size={16} className="text-gold" />
+                  ) : (
+                    <Utensils size={16} className="text-emerald-400" />
+                  )}
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                    program.type === 'TRAINING' ? 'text-gold' : 'text-emerald-400'
+                  }`}>
+                    {program.type === 'TRAINING' ? 'Antrenman' : 'Beslenme'}
+                  </span>
+                  <span className="text-ash/30 text-xs ml-auto">
+                    {new Date(program.createdAt).toLocaleDateString('tr-TR')}
+                  </span>
+                </div>
+                <h3 className="text-white font-medium text-sm mb-2">{program.title}</h3>
+                {program.contentType === 'FILE' && program.fileUrl ? (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL}${program.fileUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gold/70 hover:text-gold text-xs transition-colors"
+                  >
+                    <Download size={12} /> Dosyayı İndir
+                  </a>
+                ) : program.content ? (
+                  <p className="text-ash/50 text-xs line-clamp-2">{program.content}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="border-t border-gold/10 pt-8">
         <h2 className="text-lg font-display text-white uppercase tracking-wide mb-6 flex items-center gap-2">
