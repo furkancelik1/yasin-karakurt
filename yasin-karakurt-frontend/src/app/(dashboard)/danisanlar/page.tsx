@@ -269,6 +269,7 @@ export default function DanisanlarPage() {
   const [search, setSearch]     = useState('');
   const [filter, setFilter]     = useState<FilterValue>('ALL');
   const [showModal, setShowModal] = useState(false);
+  const [assigningClient, setAssigningClient] = useState<ClientUser | null>(null);
 
   useEffect(() => {
     api
@@ -383,11 +384,25 @@ export default function DanisanlarPage() {
                 key={client.id}
                 client={client}
                 onView={() => router.push(`/danisanlar/${client.id}`)}
+                onAssignProgram={() => setAssigningClient(client)}
               />
             ))}
           </AnimatePresence>
         )}
       </div>
+
+      {/* Quick Assign Modal */}
+      <AnimatePresence>
+        {assigningClient && (
+          <QuickAssignModal
+            clientId={assigningClient.id}
+            clientName={assigningClient.profile 
+              ? `${assigningClient.profile.firstName} ${assigningClient.profile.lastName}`
+              : assigningClient.email}
+            onClose={() => setAssigningClient(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modal */}
       <AnimatePresence>
