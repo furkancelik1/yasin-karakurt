@@ -5,7 +5,19 @@ import { AppError } from '../../middleware/error.middleware';
 
 export const getClients = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user || !['TRAINER', 'ADMIN'].includes(req.user.role)) {
+    console.log('[getClients] Full user object:', JSON.stringify(req.user));
+    console.log('[getClients] User role:', req.user?.role);
+    
+    const userRole = req.user?.role;
+    console.log('[getClients] Role type:', typeof userRole, 'Role value:', userRole);
+    
+    // Check if role is valid
+    if (!userRole) {
+      res.status(401).json({ success: false, message: 'Kullanıcı rolü bulunamadı.' });
+      return;
+    }
+
+    if (!['TRAINER', 'ADMIN'].includes(userRole)) {
       res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
       return;
     }
@@ -36,8 +48,20 @@ export const getClients = async (req: AuthRequest, res: Response): Promise<void>
       orderBy: { createdAt: 'desc' },
     });
 
+    console.log('[getClients] Found clients:', clients.length);
+    
+    if (clients.length === 0) {
+      const allClients = await prisma.user.findMany({
+        where: { role: 'CLIENT' },
+        select: { id: true, email: true, isActive: true }
+      });
+      console.log('[getClients] All CLIENT users:', allClients.length);
+      console.log('[getClients] isActive values:', allClients.map(c => c.isActive));
+    }
+
     res.status(200).json({ success: true, data: clients });
   } catch (error) {
+    console.error('[getClients] Error:', error);
     res.status(500).json({ success: false, message: 'Danışanlar getirilemedi.' });
   }
 };

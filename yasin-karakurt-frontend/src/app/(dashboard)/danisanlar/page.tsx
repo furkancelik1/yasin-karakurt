@@ -220,20 +220,7 @@ const ClientRow = React.forwardRef<HTMLDivElement, {
           title="Program Yaz"
           className="p-3 md:p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all min-w-[44px] min-h-[44px] md:min-w-auto md:min-h-auto flex items-center justify-center"
         >
-          <Plus size={18} />
-        </button>
-      </div>
-    </motion.div>
-  );
-        >
-          <Eye size={15} />
-        </button>
-        <button
-          onClick={onAssignProgram}
-          title="Program Yaz"
-          className="p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all"
-        >
-          <Plus size={15} />
+<Plus size={18} />
         </button>
       </div>
     </motion.div>

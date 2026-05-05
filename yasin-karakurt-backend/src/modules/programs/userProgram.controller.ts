@@ -48,12 +48,14 @@ export const assignProgram = async (req: AuthRequest, res: Response, next: NextF
 export const getMyPrograms = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.sub;
+    console.log('[getMyPrograms] User ID from JWT:', userId);
     
     const programs = await prisma.userProgram.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
+    console.log('[getMyPrograms] Found programs:', programs.length);
     res.status(200).json({ success: true, data: programs });
   } catch (error) {
     console.error('Program getirme hatası:', error);
