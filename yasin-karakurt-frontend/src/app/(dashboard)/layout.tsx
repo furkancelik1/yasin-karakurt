@@ -8,15 +8,21 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-black flex">
-      {/* Sidebar: Sabit (fixed) ve en üst katmanda (z-50) */}
-      <div className="fixed inset-y-0 left-0 w-64 z-50">
+      {/* Sidebar: Desktop only */}
+      <div className="hidden md:block fixed inset-y-0 left-0 w-64 z-50">
         <Sidebar />
       </div>
 
-      {/* Ana İçerik: pl-64 ile Sidebar genişliği kadar sola boşluk eklendi */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen relative">
+      {/* Mobile Sidebar is handled inside Sidebar component */}
+
+      {/* Ana İçerik */}
+      <div className="flex-1 md:pl-64 flex flex-col min-h-screen relative">
+        {/* Mobile Header is handled inside Sidebar component */}
+        
+        <div className="md:hidden h-16" /> {/* Spacer for mobile header */}
+
         <Topbar />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 md:p-8 p-4 overflow-y-auto">
           {children}
         </main>
       </div>

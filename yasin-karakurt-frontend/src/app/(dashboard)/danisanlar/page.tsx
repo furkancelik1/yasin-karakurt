@@ -124,29 +124,30 @@ const ClientRow = React.forwardRef<HTMLDivElement, {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      className="grid grid-cols-[1fr_auto] md:grid-cols-[2fr_2fr_1fr_1.5fr_auto] gap-4 items-center px-6 py-4 border-b border-white/5 last:border-0 hover:bg-white/[0.025] transition-colors group"
+      className="md:grid md:grid-cols-[2fr_2fr_1fr_1.5fr_auto] md:gap-4 md:items-center md:px-6 md:py-4 md:border-b md:border-white/5 md:last:border-0 md:hover:bg-white/[0.025] md:transition-colors group
+        block w-full p-4 mb-3 rounded-2xl bg-charcoal/40 border border-white/5"
     >
-      {/* Avatar + Name */}
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0 font-display font-bold text-gold text-sm">
+      {/* Avatar + Name - Always visible */}
+      <div className="flex items-center gap-3 min-w-0 mb-3 md:mb-0">
+        <div className="w-12 h-12 md:w-10 md:h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0 font-display font-bold text-gold text-lg md:text-sm">
           {initial}
         </div>
         <div className="min-w-0">
-          <p className="text-white font-display font-medium text-sm uppercase tracking-wide truncate leading-none">
+          <p className="text-white font-display font-medium text-base md:text-sm uppercase tracking-wide truncate leading-none">
             {name}
           </p>
-          <p className="text-ash/40 text-xs mt-0.5 truncate">{client.email}</p>
+          <p className="text-ash/40 text-sm md:text-xs mt-1 truncate">{client.email}</p>
         </div>
       </div>
 
-      {/* Goal */}
+      {/* Goal - Desktop only */}
       <p className="text-ash/55 text-sm font-light truncate hidden md:block">
         {client.profile?.fitnessGoal ?? (
           <span className="text-ash/25 italic text-xs">Belirtilmedi</span>
         )}
       </p>
 
-      {/* Plan badge */}
+      {/* Plan badge - Desktop only */}
       <div className="hidden md:block">
         {planCfg ? (
           <span className={`text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${planCfg.cls}`}>
@@ -157,7 +158,7 @@ const ClientRow = React.forwardRef<HTMLDivElement, {
         )}
       </div>
 
-      {/* Subscription end date */}
+      {/* Subscription end date - Desktop only */}
       <div className="hidden md:flex items-center gap-1.5">
         {endStr ? (
           <>
@@ -191,19 +192,46 @@ const ClientRow = React.forwardRef<HTMLDivElement, {
         )}
       </div>
 
-      {/* Actions — visible on hover */}
-      <div className="flex items-center gap-0.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      {/* Mobile: Show goal, plan, date as info row */}
+      <div className="md:hidden flex flex-wrap gap-2 mb-3">
+        {planCfg && (
+          <span className={`text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-full border ${planCfg.cls}`}>
+            {planCfg.label}
+          </span>
+        )}
+        {endStr && (
+          <span className={`text-xs ${expired ? 'text-rose-500' : expiringSoon ? 'text-rose-400' : 'text-ash/50'}`}>
+            Bitiş: {endStr}
+          </span>
+        )}
+      </div>
+
+      {/* Actions - Always visible on mobile, hover on desktop */}
+      <div className="flex items-center gap-2 md:gap-1.5 justify-end md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 mt-3 md:mt-0">
         <button
           onClick={onView}
           title="İncele"
-          className="p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 transition-colors"
+          className="p-3 md:p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all min-w-[44px] min-h-[44px] md:min-w-auto md:min-h-auto flex items-center justify-center"
+        >
+          <Eye size={18} />
+        </button>
+        <button
+          onClick={onAssignProgram}
+          title="Program Yaz"
+          className="p-3 md:p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all min-w-[44px] min-h-[44px] md:min-w-auto md:min-h-auto flex items-center justify-center"
+        >
+          <Plus size={18} />
+        </button>
+      </div>
+    </motion.div>
+  );
         >
           <Eye size={15} />
         </button>
         <button
           onClick={onAssignProgram}
-          title="Program Atama"
-          className="p-2 rounded-lg text-ash/50 hover:text-sky-400 hover:bg-sky-400/10 transition-colors"
+          title="Program Yaz"
+          className="p-2 rounded-lg text-ash/50 hover:text-gold hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all"
         >
           <Plus size={15} />
         </button>
@@ -270,7 +298,7 @@ function QuickAssignModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -278,7 +306,7 @@ function QuickAssignModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-charcoal border border-gold/20 rounded-3xl p-6 w-full max-w-lg space-y-5"
+        className="bg-charcoal border border-gold/20 rounded-3xl p-4 md:p-6 w-full max-w-lg max-h-[95vh] overflow-y-auto space-y-4 md:space-y-5"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
