@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -12,6 +12,11 @@ import {
   X,
   UserPlus,
   AlertTriangle,
+  Dumbbell,
+  Utensils,
+  FileText,
+  Upload,
+  Send,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -89,15 +94,11 @@ function applyFilter(
 }
 
 // ── ClientRow ─────────────────────────────────────────────────────────────────
-function ClientRow({
-  client,
-  onView,
-  onAssignProgram,
-}: {
+const ClientRow = React.forwardRef<HTMLDivElement, {
   client: ClientUser;
   onView: () => void;
   onAssignProgram: () => void;
-}) {
+}>(({ client, onView, onAssignProgram }, ref) => {
   const name    = client.profile
     ? `${client.profile.firstName} ${client.profile.lastName}`
     : client.email;
@@ -117,6 +118,7 @@ function ClientRow({
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -206,6 +208,225 @@ function ClientRow({
           <Plus size={15} />
         </button>
       </div>
+    </motion.div>
+  );
+});
+
+ClientRow.displayName = 'ClientRow';
+
+// ── QuickAssignModal ────────────────────────────────────────────────────────────
+function QuickAssignModal({
+  clientId,
+  clientName,
+  onClose,
+}: {
+  clientId: string;
+  clientName: string;
+  onClose: () => void;
+}) {
+  const [programType, setProgramType] = useState<'TRAINING' | 'NUTRITION'>('TRAINING');
+  const [contentType, setContentType] = useState<'TEXT' | 'FILE'>('TEXT');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast.error('Lütfen bir başlık girin.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('userId', clientId);
+      formData.append('type', programType);
+      formData.append('title', title);
+      formData.append('contentType', contentType);
+      
+      if (contentType === 'TEXT') {
+        formData.append('content', content);
+      } else if (file) {
+        formData.append('file', file);
+      }
+
+      await api.post('/programs/assign', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.success(`${clientName} için ${programType === 'TRAINING' ? 'antrenman' : 'beslenme'} programı atandı.`);
+      onClose();
+    } catch (error) {
+      toast.error('Program atama işlemi başarısız.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.94, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.94, opacity: 0, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-charcoal border border-gold/20 rounded-3xl p-6 w-full max-w-lg space-y-5"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${programType === 'TRAINING' ? 'bg-gold/10 border border-gold/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
+              {programType === 'TRAINING' ? (
+                <Dumbbell size={20} className="text-gold" />
+              ) : (
+                <Utensils size={20} className="text-emerald-400" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-white font-display uppercase tracking-wide">
+                Program Atama
+              </h3>
+              <p className="text-ash/50 text-xs">{clientName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl border border-white/10 hover:border-white/20 text-ash/60 hover:text-white transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Program Türü</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setProgramType('TRAINING')}
+                className={`flex-1 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                  programType === 'TRAINING'
+                    ? 'bg-gold/10 text-gold border-gold/30'
+                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <Dumbbell size={14} className="inline mr-2" /> Antrenman
+              </button>
+              <button
+                type="button"
+                onClick={() => setProgramType('NUTRITION')}
+                className={`flex-1 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                  programType === 'NUTRITION'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <Utensils size={14} className="inline mr-2" /> Beslenme
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Başlık</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={programType === 'TRAINING' ? 'Örn: Haftalık Antrenman Programı' : 'Örn: Kişiselleştirilmiş Beslenme Planı'}
+              className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white placeholder:text-ash/30 focus:border-gold/40 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">İçerik Türü</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setContentType('TEXT')}
+                className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                  contentType === 'TEXT'
+                    ? 'bg-white/10 text-white border-white/20'
+                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <FileText size={12} className="inline mr-1" /> Metin
+              </button>
+              <button
+                type="button"
+                onClick={() => setContentType('FILE')}
+                className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                  contentType === 'FILE'
+                    ? 'bg-white/10 text-white border-white/20'
+                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <Upload size={12} className="inline mr-1" /> Dosya
+              </button>
+            </div>
+          </div>
+
+          {contentType === 'TEXT' ? (
+            <div>
+              <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Program İçeriği</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Antrenman talimatlarını veya beslenme planını buraya yazın..."
+                rows={5}
+                className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white placeholder:text-ash/30 focus:border-gold/40 focus:outline-none resize-none"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Dosya Yükle (PDF/Resim)</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-4 rounded-xl border border-dashed border-white/20 text-ash/50 hover:border-gold/30 hover:text-gold transition-colors flex items-center justify-center gap-2"
+              >
+                <Upload size={16} />
+                {file ? file.name : 'Dosya seçmek için tıklayın'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl border border-white/10 text-ash/60 hover:text-white hover:border-white/20 font-bold text-xs uppercase tracking-widest transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="flex-1 py-3 rounded-xl bg-gold text-black font-bold text-xs uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                <Send size={12} /> Ata
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }

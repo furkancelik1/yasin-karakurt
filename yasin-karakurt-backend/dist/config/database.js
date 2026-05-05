@@ -2,11 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prisma = void 0;
 const client_1 = require("@prisma/client");
-const env_1 = require("./env");
-const globalForPrisma = globalThis;
+// Global objeye prisma tipini ekliyoruz
+const globalForPrisma = global;
+// Eğer globalde varsa onu kullan, yoksa yeni oluştur
 exports.prisma = globalForPrisma.prisma ||
     new client_1.PrismaClient({
-        log: env_1.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: ['query', 'error', 'warn'],
     });
-if (env_1.env.NODE_ENV !== 'production')
+// Development ortamındaysak bağlantıyı globalde sakla
+if (process.env.NODE_ENV !== 'production')
     globalForPrisma.prisma = exports.prisma;
+exports.default = exports.prisma;

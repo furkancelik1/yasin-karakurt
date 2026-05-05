@@ -23,7 +23,18 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
 export const authorize = (...roles: Role[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Oturum açmanız gerekiyor.' });
+      return;
+    }
+    
+    const userRole = req.user.role;
+    
+    if (userRole === 'ADMIN') {
+      return next();
+    }
+    
+    if (!roles.includes(userRole)) {
       res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok' });
       return;
     }

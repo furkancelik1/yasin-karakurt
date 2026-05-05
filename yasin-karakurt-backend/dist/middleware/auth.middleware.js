@@ -25,7 +25,15 @@ const authenticate = (req, res, next) => {
 exports.authenticate = authenticate;
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Oturum açmanız gerekiyor.' });
+            return;
+        }
+        const userRole = req.user.role;
+        if (userRole === 'ADMIN') {
+            return next();
+        }
+        if (!roles.includes(userRole)) {
             res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok' });
             return;
         }
