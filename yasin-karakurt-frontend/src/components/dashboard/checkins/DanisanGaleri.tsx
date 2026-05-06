@@ -11,9 +11,9 @@ import type { TrainerCheckIn, CheckInStatus } from '@/types';
 type FilterValue = 'ALL' | 'PENDING' | 'REVIEWED';
 
 const FILTERS: { label: string; value: FilterValue }[] = [
-  { label: 'Tümü',        value: 'ALL'      },
-  { label: 'Bekleyenler', value: 'PENDING'  },
+  { label: 'Bekleyenler', value: 'PENDING' },
   { label: 'İncelenenler', value: 'REVIEWED' },
+  { label: 'Tümü', value: 'ALL' },
 ];
 
 const STATUS_CFG: Record<CheckInStatus, { label: string; cls: string }> = {
@@ -41,7 +41,7 @@ const cardVariants = {
 export default function DanisanGaleri() {
   const [checkins, setCheckins] = useState<TrainerCheckIn[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [filter, setFilter]     = useState<FilterValue>('ALL');
+  const [filter, setFilter]     = useState<FilterValue>('PENDING');
   const router = useRouter();
 
   useEffect(() => {

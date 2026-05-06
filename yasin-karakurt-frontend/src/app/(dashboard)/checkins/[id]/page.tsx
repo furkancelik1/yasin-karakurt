@@ -45,6 +45,13 @@ interface CheckInDetail {
 interface PageData {
   checkin: CheckInDetail;
   previousCheckin: CheckInDetail | null;
+  allCheckIns: {
+    id: string;
+    weight: number | null;
+    bodyFat: number | null;
+    submittedAt: string;
+    photos: Photo[];
+  }[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -131,12 +138,7 @@ function PhotoGallery({ photos }: { photos: Photo[] }) {
             <button
               key={photo.id}
               onClick={() => go(i)}
-              className={[
-                'flex-1 aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200',
-                i === idx
-                  ? 'border-gold shadow-gold-soft scale-[1.04]'
-                  : 'border-transparent opacity-50 hover:opacity-75',
-              ].join(' ')}
+              className={`flex-1 aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${i === idx ? 'border-gold shadow-gold-soft scale-[1.04]' : 'border-transparent opacity-50 hover:opacity-75'}`}
             >
               <img src={photo.url} alt="" className="w-full h-full object-cover" />
             </button>
@@ -189,9 +191,10 @@ function ReviewForm({
   checkinId: string;
   currentNote: string | null;
   currentStatus: CheckInStatus;
-  onReviewed: (result: { trainerNote: string; status: CheckInStatus }) => void;
+  onReviewed: (result: { trainerNote: string; status: CheckInStatus; rating?: number }) => void;
 }) {
   const [note, setNote]         = useState(currentNote ?? '');
+  const [rating, setRating]     = useState<number | undefined>(undefined);
   const [status, setStatus]     = useState<'REVIEWED' | 'COMPLETED'>(
     currentStatus === 'COMPLETED' ? 'COMPLETED' : 'REVIEWED',
   );
@@ -205,11 +208,12 @@ function ReviewForm({
     try {
       await api.patch(`/checkins/${checkinId}/review`, {
         ...(note.trim() && { trainerNote: note.trim() }),
+        ...(rating && { rating }),
         status,
       });
       setDone(true);
-      onReviewed({ trainerNote: note.trim(), status });
-      toast.success('Geri bildirim danışana iletildi.', {
+      onReviewed({ trainerNote: note.trim(), status, rating });
+      toast.success('Geri bildirim danışana iletildi!', {
         description: 'Bildirim otomatik olarak gönderildi.',
       });
     } catch {
@@ -223,7 +227,7 @@ function ReviewForm({
     <section className="rounded-2xl border border-gold/15 bg-white/[0.02] p-6 space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-[10px] font-bold tracking-widest uppercase text-ash/40 flex items-center gap-2">
-          <MessageSquare size={12} /> Antrenör Geri Bildirimi
+          <MessageSquare size={12} /> Koç Değerlendirmesi
         </h2>
         {isReviewed && (
           <motion.span
@@ -234,6 +238,23 @@ function ReviewForm({
             <CheckCircle size={13} /> İncelendi
           </motion.span>
         )}
+      </div>
+
+      {/* Rating */}
+      <div className="space-y-2">
+        <label className="text-xs text-ash-400">Performans Puanı (1-5)</label>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${rating === star ? 'bg-gold text-black' : 'bg-white/5 text-ash-400 hover:bg-white/10'}`}
+            >
+              {star} ★
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Textarea */}
@@ -252,14 +273,7 @@ function ReviewForm({
             key={s}
             type="button"
             onClick={() => setStatus(s)}
-            className={[
-              'flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all duration-200',
-              status === s
-                ? s === 'COMPLETED'
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                : 'bg-transparent text-ash/40 border-white/10 hover:border-white/20',
-            ].join(' ')}
+            className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all duration-200 ${status === s ? (s === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-sky-500/20 text-sky-300 border-sky-500/40') : 'bg-transparent text-ash/40 border-white/10 hover:border-white/20'}`}
           >
             {s === 'REVIEWED' ? 'İncelendi' : 'Tamamlandı'}
           </button>
@@ -293,6 +307,7 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
   const [data, setData]         = useState<PageData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [compareId, setCompareId] = useState<string>('');
 
   useEffect(() => {
     api
@@ -304,6 +319,8 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const allCheckIns = data?.allCheckIns || [];
 
   const handleReviewed = ({ trainerNote, status }: { trainerNote: string; status: CheckInStatus }) => {
     setData((prev) =>
@@ -348,6 +365,14 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
   const formattedDate = new Date(checkin.submittedAt).toLocaleDateString('tr-TR', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
+
+  const compareOptions = allCheckIns.filter(c => c.id !== checkin?.id);
+  const compareCheckin = compareId 
+    ? compareOptions.find(c => c.id === compareId) 
+    : (previousCheckin ? { 
+        ...previousCheckin, 
+        photos: previousCheckin.photos || [] 
+      } : null);
 
   return (
     <motion.div
@@ -438,53 +463,79 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
 
       {/* ── Before / After comparison ── */}
       <section className="space-y-4">
-        <p className="text-[10px] font-bold tracking-widest uppercase text-ash/40">
-          Görsel Karşılaştırma
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          {/* Previous */}
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-ash/40">
+            Görsel Karşılaştırma
+          </p>
+          
+          {compareOptions.length > 0 && (
+            <select
+              value={compareId}
+              onChange={(e) => setCompareId(e.target.value)}
+              className="bg-charcoal border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+            >
+              <option value="">Otomatik (Önceki Hafta)</option>
+              {compareOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {new Date(c.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                  {c.weight ? ` - ${c.weight}kg` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        
+<div className="grid grid-cols-2 gap-4">
+          {/* Before */}
           <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-charcoal/60 border border-white/10">
-            {previousCheckin?.photos[0]?.url ? (
-              <img
-                src={previousCheckin.photos[0].url}
-                alt="Önceki hafta"
-                className="w-full h-full object-cover"
-              />
+            {compareCheckin && compareCheckin.photos && compareCheckin.photos[0]?.url ? (
+              <>
+                <img
+                  src={compareCheckin.photos[0].url}
+                  alt="Önceki"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <p className="text-ash/20 font-display italic text-sm">Önceki veri yok</p>
+                <p className="text-ash/20 font-display italic text-sm">Karşılaştırma yok</p>
               </div>
             )}
             <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
-              <p className="text-[10px] tracking-widest uppercase text-ash/50 font-bold">Önceki</p>
-              {previousCheckin && (
+              <p className="text-[10px] tracking-widest uppercase text-ash/50 font-bold">ÖNCE</p>
+              {compareCheckin && (
                 <p className="text-white/50 text-xs mt-0.5">
-                  {new Date(previousCheckin.submittedAt).toLocaleDateString('tr-TR', {
+                  {new Date(compareCheckin.submittedAt).toLocaleDateString('tr-TR', {
                     day: 'numeric', month: 'long',
                   })}
+                  {compareCheckin.weight && ` • ${compareCheckin.weight}kg`}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Current */}
-          <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-charcoal/60 border border-gold/20">
-            {checkin.photos[0]?.url ? (
-              <img
-                src={checkin.photos[0].url}
-                alt="Bu hafta"
-                className="w-full h-full object-cover"
-              />
+          {/* After */}
+          <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-charcoal/60 border-2 border-gold/30">
+            {checkin?.photos && checkin.photos[0]?.url ? (
+              <>
+                <img
+                  src={checkin.photos[0].url}
+                  alt="Sonra"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 ring-1 ring-inset ring-gold/20" />
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <p className="text-ash/20 font-display italic text-sm">Fotoğraf yok</p>
               </div>
             )}
             <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
-              <p className="text-[10px] tracking-widest uppercase text-gold/70 font-bold">Bu Hafta</p>
+              <p className="text-[10px] tracking-widest uppercase text-gold/70 font-bold">SONRA</p>
               <p className="text-white/50 text-xs mt-0.5">{formattedDate}</p>
             </div>
-          </div>
+</div>
         </div>
       </section>
     </motion.div>

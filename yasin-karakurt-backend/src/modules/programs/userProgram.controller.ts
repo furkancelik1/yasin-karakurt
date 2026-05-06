@@ -3,6 +3,7 @@ import path from 'path';
 import { prisma } from '../../config/database';
 import { AuthRequest } from '../../types';
 import { ProgramType, ProgramContentType } from '@prisma/client';
+import { createNotification } from '../notifications/notification.service';
 
 interface CreateUserProgramBody {
   userId: string;
@@ -36,6 +37,13 @@ export const assignProgram = async (req: AuthRequest, res: Response, next: NextF
         contentType: contentType || (fileUrl ? 'FILE' : 'TEXT'),
         fileUrl,
       },
+    });
+
+    await createNotification({
+      userId,
+      title: type === 'TRAINING' ? 'Yeni Antrenman Programı' : 'Yeni Beslenme Planı',
+      message: `Size "${title}" programı atandı. Programınızı inceleyebilirsiniz.`,
+      type: 'PROGRAM_ASSIGNED',
     });
 
     res.status(201).json({ success: true, data: program });

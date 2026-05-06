@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
-  Scale,
   Calendar,
   MessageSquare,
   X,
@@ -23,6 +22,10 @@ import {
   Download,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { ProgressChart } from '@/components/dashboard/ProgressChart';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { NutritionEditor } from '@/components/dashboard/NutritionEditor';
+import { Scale as WeightIcon, TrendingDown, TrendingUp, Moon, Star } from 'lucide-react';
 
 interface CheckInPhoto {
   id: string;
@@ -310,7 +313,7 @@ function CheckInCard({
 
       {checkin.weight !== null && (
         <div className="flex items-center gap-3 p-3 bg-gold/5 rounded-xl border border-gold/10">
-          <Scale size={16} className="text-gold" />
+          <WeightIcon size={16} className="text-gold" />
           <span className="text-ash/60 text-sm">Kilo</span>
           <span className="text-gold font-display font-bold text-lg ml-auto">
             {checkin.weight} kg
@@ -370,22 +373,35 @@ export default function ClientDetailPage() {
   const clientId = params.id as string;
 
   const [client, setClient] = useState<ClientUser | null>(null);
-  const [checkins, setCheckins] = useState<CheckIn[]>([]);
+  const [checkins, setCheckIns] = useState<CheckIn[]>([]);
+  const [clientStats, setClientStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
-  const [programs, setPrograms] = useState<UserProgram[]>([]);
+const [programs, setPrograms] = useState<UserProgram[]>([]);
   const [assigningType, setAssigningType] = useState<'TRAINING' | 'NUTRITION' | null>(null);
+  const [summary, setSummary] = useState<{
+    totalChange: number | null;
+    currentWeight: number | null;
+    avgSleep: number | null;
+    avgEnergy: number | null;
+    continuityScore: number | null;
+    latestRating: number | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientRes, checkinsRes] = await Promise.all([
+        const [clientRes, checkinsRes, statsRes, summaryRes] = await Promise.all([
           api.get<{ success: boolean; data: ClientUser }>(`/users/${clientId}`),
           api.get<{ success: boolean; data: CheckIn[] }>(`/checkins/client/${clientId}`),
+          api.get<{ success: boolean; data: any }>(`/checkins/client/${clientId}/stats`),
+          api.get<{ success: boolean; data: any }>(`/checkins/summary/${clientId}`),
         ]);
         
         if (clientRes.data.success) setClient(clientRes.data.data);
-        if (checkinsRes.data.success) setCheckins(checkinsRes.data.data || []);
+        if (checkinsRes.data.success) setCheckIns(checkinsRes.data.data || []);
+        if (statsRes.data.success) setClientStats(statsRes.data.data);
+        if (summaryRes.data.success) setSummary(summaryRes.data.data);
       } catch (error) {
         console.error('Veri çekme hatası:', error);
         toast.error('Veriler yüklenirken hata oluştu.');
@@ -398,7 +414,7 @@ export default function ClientDetailPage() {
   }, [clientId]);
 
   const handleReviewSuccess = (trainerNote: string) => {
-    setCheckins(prev => prev.map(c => 
+    setCheckIns(prev => prev.map((c: CheckIn) => 
       c.id === reviewingId 
         ? { ...c, status: 'REVIEWED' as const, reviewedAt: new Date().toISOString(), trainerNote }
         : c
@@ -436,16 +452,22 @@ export default function ClientDetailPage() {
     : client.email;
 
   const stats = {
-    totalCheckins: checkins.length,
+    totalCheckIns: checkins.length,
     reviewedCount: checkins.filter(c => c.status === 'REVIEWED').length,
     pendingCount: checkins.filter(c => c.status === 'PENDING').length,
     latestWeight: checkins.find(c => c.weight)?.weight,
     weightHistory: checkins.filter(c => c.weight !== null).map(c => c.weight as number),
+    weightChange: clientStats?.weightChange,
+    avgSleepHours: clientStats?.avgSleepHours,
+    avgEnergyLevel: clientStats?.avgEnergyLevel,
+    avgStressLevel: clientStats?.avgStressLevel,
   };
 
-  const weightChange = stats.weightHistory.length >= 2 
-    ? stats.weightHistory[0] - stats.weightHistory[stats.weightHistory.length - 1]
-    : null;
+  const weightChange = stats.weightChange ?? (
+    stats.weightHistory.length >= 2 
+      ? stats.weightHistory[0] - stats.weightHistory[stats.weightHistory.length - 1]
+      : null
+  );
 
   return (
     <div className="space-y-8">
@@ -473,32 +495,32 @@ export default function ClientDetailPage() {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-charcoal/40 border border-white/5 rounded-2xl p-4 text-center">
-          <p className="text-ash/40 text-xs font-bold uppercase tracking-wider mb-1">Toplam</p>
-          <p className="text-white font-display text-2xl font-bold">{stats.totalCheckins}</p>
-          <p className="text-ash/50 text-xs">check-in</p>
-        </div>
-        <div className="bg-charcoal/40 border border-white/5 rounded-2xl p-4 text-center">
-          <p className="text-ash/40 text-xs font-bold uppercase tracking-wider mb-1">İncelendi</p>
-          <p className="text-sky-400 font-display text-2xl font-bold">{stats.reviewedCount}</p>
-          <p className="text-ash/50 text-xs">adet</p>
-        </div>
-        <div className="bg-charcoal/40 border border-white/5 rounded-2xl p-4 text-center">
-          <p className="text-ash/40 text-xs font-bold uppercase tracking-wider mb-1">Beklemede</p>
-          <p className="text-amber-400 font-display text-2xl font-bold">{stats.pendingCount}</p>
-          <p className="text-ash/50 text-xs">adet</p>
-        </div>
-        <div className="bg-charcoal/40 border border-white/5 rounded-2xl p-4 text-center">
-          <p className="text-ash/40 text-xs font-bold uppercase tracking-wider mb-1">Son Kilo</p>
-          <p className="text-gold font-display text-2xl font-bold">
-            {stats.latestWeight ? `${stats.latestWeight} kg` : '—'}
-          </p>
-          {weightChange !== null && (
-            <p className={`text-xs font-medium ${weightChange <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} kg
-            </p>
-          )}
-        </div>
+        <StatCard
+          title="Güncel Kilo"
+          value={summary && summary.currentWeight ? `${summary.currentWeight} kg` : '—'}
+          icon={<WeightIcon size={18} className="text-gold" />}
+        />
+        <StatCard
+          title="Toplam Değişim"
+          value={summary && summary.totalChange !== null 
+            ? `${summary.totalChange > 0 ? '+' : ''}${summary.totalChange} kg` 
+            : '—'}
+          icon={summary && summary.totalChange !== null ? (
+            summary.totalChange < 0 
+              ? <TrendingDown size={18} className="text-emerald-400" />
+              : <TrendingUp size={18} className="text-rose-400" />
+          ) : <WeightIcon size={18} className="text-gold" />}
+        />
+        <StatCard
+          title="Ortalama Uyku"
+          value={summary && summary.avgSleep ? `${summary.avgSleep}s` : '—'}
+          icon={<Moon size={18} className="text-sky-400" />}
+        />
+        <StatCard
+          title="Form Puanı"
+          value={summary?.latestRating ? `${summary.latestRating}/5` : '—'}
+          icon={<Star size={18} className="text-gold" />}
+        />
       </div>
 
       {client.profile?.fitnessGoal && (
@@ -580,6 +602,10 @@ export default function ClientDetailPage() {
       </div>
 
       <div className="border-t border-gold/10 pt-8">
+        <div className="bg-charcoal/30 border border-white/5 rounded-2xl p-4 mb-6">
+          <ProgressChart userId={params.id} />
+        </div>
+
         <h2 className="text-lg font-display text-white uppercase tracking-wide mb-6 flex items-center gap-2">
           <Calendar size={18} className="text-gold" />
           Gelişim Geçmişi
@@ -613,6 +639,13 @@ export default function ClientDetailPage() {
           />
         )}
       </AnimatePresence>
+
+      {assigningType === 'NUTRITION' && clientId && (
+        <NutritionEditor
+          userId={clientId}
+          onClose={() => setAssigningType(null)}
+        />
+      )}
     </div>
   );
 }

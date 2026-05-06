@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -17,6 +18,12 @@ import {
   FileText,
   Upload,
   Send,
+  Beef,
+  Croissant,
+  Droplets,
+  Calculator,
+  Clock,
+  Trash,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -241,35 +248,94 @@ function QuickAssignModal({
 }) {
   const [programType, setProgramType] = useState<'TRAINING' | 'NUTRITION'>('TRAINING');
   const [contentType, setContentType] = useState<'TEXT' | 'FILE'>('TEXT');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async () => {
-    if (!title.trim()) {
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      title: '',
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      customCalories: false,
+      targetCalories: 0,
+      content: '',
+      meals: [
+        { name: '', content: '', time: '08:00' },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'meals',
+  });
+
+  const protein = watch('protein') || 0;
+  const carbs = watch('carbs') || 0;
+  const fat = watch('fat') || 0;
+  const customCalories = watch('customCalories');
+  const targetCalories = watch('targetCalories') || 0;
+  const content = watch('content') || '';
+  const meals = watch('meals') || [];
+
+  const calculatedCalories = protein * 4 + carbs * 4 + fat * 9;
+  const displayCalories = customCalories ? targetCalories : calculatedCalories;
+
+  useEffect(() => {
+    if (!customCalories) {
+      setValue('targetCalories', calculatedCalories);
+    }
+  }, [protein, carbs, fat, customCalories, calculatedCalories, setValue]);
+
+  const handleSubmitForm = async (data: any) => {
+    if (!data.title.trim()) {
       toast.error('Lütfen bir başlık girin.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('userId', clientId);
-      formData.append('type', programType);
-      formData.append('title', title);
-      formData.append('contentType', contentType);
-      
-      if (contentType === 'TEXT') {
-        formData.append('content', content);
-      } else if (file) {
-        formData.append('file', file);
-      }
+      if (programType === 'NUTRITION') {
+        await api.post('/nutrition/plan', {
+          userId: clientId,
+          title: data.title,
+          targetCalories: displayCalories,
+          protein: data.protein,
+          carbs: data.carbs,
+          fat: data.fat,
+          meals: data.meals.filter((m: any) => m.name && m.content).map((m: any, i: number) => ({
+            name: m.name,
+            content: m.content,
+            time: m.time,
+            order: i,
+          })),
+        });
+      } else {
+        const formData = new FormData();
+        formData.append('userId', clientId);
+        formData.append('type', programType);
+        formData.append('title', data.title);
+        formData.append('contentType', contentType);
+        
+        if (contentType === 'TEXT') {
+          formData.append('content', data.content);
+        } else if (file) {
+          formData.append('file', file);
+        }
 
-      await api.post('/programs/assign', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+        await api.post('/programs/assign', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
 
       toast.success(`${clientName} için ${programType === 'TRAINING' ? 'antrenman' : 'beslenme'} programı atandı.`);
       onClose();
@@ -351,84 +417,208 @@ function QuickAssignModal({
           <div>
             <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Başlık</label>
             <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              {...register('title')}
               placeholder={programType === 'TRAINING' ? 'Örn: Haftalık Antrenman Programı' : 'Örn: Kişiselleştirilmiş Beslenme Planı'}
               className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white placeholder:text-ash/30 focus:border-gold/40 focus:outline-none"
             />
           </div>
 
-          <div>
-            <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">İçerik Türü</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setContentType('TEXT')}
-                className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
-                  contentType === 'TEXT'
-                    ? 'bg-white/10 text-white border-white/20'
-                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
-                }`}
-              >
-                <FileText size={12} className="inline mr-1" /> Metin
-              </button>
-              <button
-                type="button"
-                onClick={() => setContentType('FILE')}
-                className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
-                  contentType === 'FILE'
-                    ? 'bg-white/10 text-white border-white/20'
-                    : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
-                }`}
-              >
-                <Upload size={12} className="inline mr-1" /> Dosya
-              </button>
-            </div>
-          </div>
+          {programType === 'NUTRITION' && (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-2 block flex items-center gap-1">
+                    <Beef size={12} /> P (g)
+                  </label>
+                  <input
+                    type="number"
+                    {...register('protein', { valueAsNumber: true })}
+                    className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-3 py-2.5 text-white text-center focus:border-amber-500/40 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 block flex items-center gap-1">
+                    <Croissant size={12} /> C (g)
+                  </label>
+                  <input
+                    type="number"
+                    {...register('carbs', { valueAsNumber: true })}
+                    className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-3 py-2.5 text-white text-center focus:border-emerald-500/40 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sky-400 text-xs font-bold uppercase tracking-wider mb-2 block flex items-center gap-1">
+                    <Droplets size={12} /> Y (g)
+                  </label>
+                  <input
+                    type="number"
+                    {...register('fat', { valueAsNumber: true })}
+                    className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-3 py-2.5 text-white text-center focus:border-sky-500/40 focus:outline-none"
+                  />
+                </div>
+                <div className={`col-span-3 rounded-xl p-3 ${customCalories ? 'bg-gold/20 border border-gold/30' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Calculator size={14} className={customCalories ? 'text-gold' : 'text-emerald-400'} />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        {customCalories ? 'Özel Kalori' : 'Toplam Kalori'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xl font-display text-white">{displayCalories}</span>
+                      <span className="text-ash/50 text-xs ml-1">kcal</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-[10px] text-ash/50 font-mono">
+                      {protein}×4 + {carbs}×4 + {fat}×9
+                    </span>
+                    <label className="text-[10px] text-ash/50 hover:text-white cursor-pointer">
+                      <input
+                        type="checkbox"
+                        {...register('customCalories')}
+                        className="sr-only"
+                      />
+                      {customCalories ? 'Otomatik hesapla' : 'Özel gir'}
+                    </label>
+                  </div>
+                </div>
+              </div>
 
-          {contentType === 'TEXT' ? (
-            <div>
-              <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Program İçeriği</label>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Antrenman talimatlarını veya beslenme planını buraya yazın..."
-                rows={5}
-                className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white placeholder:text-ash/30 focus:border-gold/40 focus:outline-none resize-none"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Dosya Yükle (PDF/Resim)</label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-4 rounded-xl border border-dashed border-white/20 text-ash/50 hover:border-gold/30 hover:text-gold transition-colors flex items-center justify-center gap-2"
-              >
-                <Upload size={16} />
-                {file ? file.name : 'Dosya seçmek için tıklayın'}
-              </button>
-            </div>
+              {customCalories && (
+                <div>
+                  <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Özel Kalori Hedefi</label>
+                  <input
+                    type="number"
+                    {...register('targetCalories', { valueAsNumber: true })}
+                    className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white focus:border-gold/40 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-ash/70 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Clock size={12} /> Öğünler
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => append({ name: '', content: '', time: '12:00' })}
+                    className="text-xs text-gold hover:text-white flex items-center gap-1"
+                  >
+                    <Plus size={12} /> Ekle
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {fields.map((field, idx) => (
+                    <div key={field.id} className="bg-charcoal/40 rounded-lg p-3 space-y-2 border border-white/5">
+                      <div className="grid grid-cols-[1fr_80px_32px] gap-2">
+                        <input
+                          {...register(`meals.${idx}.name` as const)}
+                          placeholder="Öğün adı"
+                          className="bg-charcoal/60 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-gold/40 focus:outline-none"
+                        />
+                        <input
+                          type="time"
+                          {...register(`meals.${idx}.time` as const)}
+                          className="bg-charcoal/60 border border-white/10 rounded-lg px-2 py-2 text-white text-sm focus:border-gold/40 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => remove(idx)}
+                          className="p-2 rounded-lg border border-white/10 hover:border-rose-500/30 text-ash/50 hover:text-rose-400"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </div>
+                      <textarea
+                        {...register(`meals.${idx}.content` as const)}
+                        placeholder="Öğün içeriği (örn: 3 yumurta, 50g yulaf)"
+                        rows={2}
+                        className="w-full bg-charcoal/60 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-gold/40 focus:outline-none resize-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {programType === 'TRAINING' && (
+            <>
+              <div>
+                <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">İçerik Türü</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setContentType('TEXT')}
+                    className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                      contentType === 'TEXT'
+                        ? 'bg-white/10 text-white border-white/20'
+                        : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <FileText size={12} className="inline mr-1" /> Metin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentType('FILE')}
+                    className={`flex-1 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all ${
+                      contentType === 'FILE'
+                        ? 'bg-white/10 text-white border-white/20'
+                        : 'bg-transparent text-ash/50 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <Upload size={12} className="inline mr-1" /> Dosya
+                  </button>
+                </div>
+              </div>
+
+              {contentType === 'TEXT' ? (
+                <div>
+                  <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Program İçeriği</label>
+                  <textarea
+                    {...register('content')}
+                    placeholder="Antrenman talimatlarını buraya yazın..."
+                    rows={5}
+                    className="w-full bg-charcoal/60 border border-white/10 rounded-xl p-3 text-white placeholder:text-ash/30 focus:border-gold/40 focus:outline-none resize-none"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-ash/70 text-xs font-bold uppercase tracking-wider mb-2 block">Dosya Yükle (PDF/Resim)</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-4 rounded-xl border border-dashed border-white/20 text-ash/50 hover:border-gold/30 hover:text-gold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Upload size={16} />
+                    {file ? file.name : 'Dosya seçmek için tıklayın'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         <div className="flex gap-3 pt-2">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 py-3 rounded-xl border border-white/10 text-ash/60 hover:text-white hover:border-white/20 font-bold text-xs uppercase tracking-widest transition-colors"
           >
             İptal
           </button>
           <button
-            onClick={handleSubmit}
+            type="button"
+            onClick={handleSubmit(handleSubmitForm)}
             disabled={isSubmitting}
             className="flex-1 py-3 rounded-xl bg-gold text-black font-bold text-xs uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >

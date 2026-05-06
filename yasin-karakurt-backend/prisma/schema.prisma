@@ -65,6 +65,8 @@ model User {
   subscription  Subscription?
   notifications Notification[]
   userPrograms  UserProgram[]
+  nutritionPlans NutritionPlan[]
+  waterLogs     WaterLog[]
 
   @@map("users")
 }
@@ -88,6 +90,56 @@ model Profile {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
+}
+
+model NutritionPlan {
+  id             String    @id @default(cuid())
+  userId         String
+  title         String?
+  targetCalories Int
+  protein       Int
+  carbs         Int
+  fat           Int
+  notes         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals        Meal[]
+
+  @@index([userId])
+  @@map("nutrition_plans")
+}
+
+model Meal {
+  id          String    @id @default(cuid())
+  planId     String
+  name      String
+  content   String    @db.Text
+  time      String?
+  isDone    Boolean   @default(false)
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime @updatedAt
+
+  plan       NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("meals")
+}
+
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  amount   Float    @db.Real
+  date     DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("water_logs")
 }
 
 model Program {
@@ -189,18 +241,34 @@ model CheckIn {
   userId      String
   programId   String?
   weekNumber  Int?
-  status      CheckInStatus @default(PENDING)
-  weight      Float?
+  status     CheckInStatus @default(PENDING)
+  
+  // Metrikler
+  weight       Float?
   bodyFat     Float?
+  sleepHours  Int?
+  energyLevel Int?
+  stressLevel Int?
+  hungerLevel Int?
+  
+  // Görseller
+  frontPhotoUrl String?
+  sidePhotoUrl String?
+  backPhotoUrl String?
+  photos      CheckInPhoto[]
+  
+  // Koç alanları
+  coachNotes  String?
+  rating     Int?
+  
   notes       String?
   trainerNote String?
-  photos      CheckInPhoto[]
   submittedAt DateTime      @default(now())
   reviewedAt  DateTime?
-  updatedAt   DateTime      @updatedAt
+  updatedAt  DateTime      @updatedAt
 
-  user        User          @relation(fields: [userId], references: [id])
-  program     Program?      @relation(fields: [programId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program    Program?  @relation(fields: [programId], references: [id])
 
   @@map("check_ins")
 }
@@ -253,17 +321,24 @@ model Payment {
   @@map("payments")
 }
 
+enum NotificationType {
+  PROGRAM_ASSIGNED
+  CHECKIN_REMINDER
+  SYSTEM
+}
+
 model Notification {
-  id        String   @id @default(cuid())
+  id        String          @id @default(uuid())
   userId    String
   title     String
   message   String
-  type      String   @default("GENERAL") // 'PROGRAM_ASSIGNED', 'CHECKIN_RECEIVED', etc.
-  isRead    Boolean  @default(false)
-  link      String?  // Bildirime tıklandığında gidilecek sayfa
-  createdAt DateTime @default(now())
+  type     NotificationType @default(SYSTEM)
+  isRead   Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("notifications")
 }

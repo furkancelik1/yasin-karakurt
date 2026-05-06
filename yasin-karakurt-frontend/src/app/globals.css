@@ -90,3 +90,48 @@
     @apply px-6 md:px-12 lg:px-24 xl:px-32;
   }
 }
+
+/* ── Print Styles ──────────────────────────── */
+@media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Hide navigation and interactive elements */
+  nav,
+  aside,
+  .sidebar,
+  .no-print,
+  button,
+  .hidden-print {
+    display: none !important;
+  }
+  
+  /* Show print-only content */
+  .print-only,
+  .print\\:block {
+    display: block !important;
+  }
+  
+  /* Clean page layout */
+  .print-container {
+    padding: 20mm;
+    background: white;
+    color: black;
+  }
+  
+  /* Remove URL from print */
+  a[href]::after {
+    content: none !important;
+  }
+}
