@@ -1,17 +1,31 @@
 import { Response } from 'express';
-import { prisma } from '../../config/database';
 import { AuthRequest } from '../../types';
 import { NutritionService } from './nutrition.service';
 
+interface NutritionBody {
+  userId: string;
+  title?: string;
+  targetCalories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  notes?: string;
+  meals?: Array<{ name?: string; content?: string; time?: string; order?: number }>;
+}
+
+interface MealInput {
+  name: string;
+  content: string;
+  time: string;
+  order: number;
+}
+
 export const createNutritionPlan = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const body = req.body;
-    console.log('[createNutritionPlan] Request body:', JSON.stringify(body, null, 2));
-
-    const userId = body.userId as string;
+    const body = req.body as NutritionBody;
+    const userId = body.userId;
 
     if (!userId) {
-      console.log('[createNutritionPlan] HATA: userId yok');
       res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
       return;
     }
@@ -20,14 +34,10 @@ export const createNutritionPlan = async (req: AuthRequest, res: Response): Prom
     const protein = Number(body.protein) || 0;
     const carbs = Number(body.carbs) || 0;
     const fat = Number(body.fat) || 0;
-    const title = body.title as string | undefined;
-    const notes = body.notes as string | undefined;
     
-    const rawMeals = body.meals as Array<{ name?: string; content?: string; time?: string; order?: number }> | undefined;
-    const meals: Array<{ name: string; content: string; time: string; order: number }> = [];
-    
-    if (rawMeals && rawMeals.length > 0) {
-      for (const m of rawMeals) {
+    const meals: MealInput[] = [];
+    if (body.meals) {
+      for (const m of body.meals) {
         if (m.name && m.name.trim()) {
           meals.push({
             name: m.name,
@@ -38,26 +48,20 @@ export const createNutritionPlan = async (req: AuthRequest, res: Response): Prom
         }
       }
     }
-    const finalMeals = meals.length > 0 ? meals : undefined;
-
-    console.log('[createNutritionPlan] Veriler:', { userId, targetCalories, protein, carbs, fat, finalMeals });
 
     const plan = await NutritionService.createPlan({
       userId,
-      title,
+      title: body.title,
       targetCalories,
       protein,
       carbs,
       fat,
-      notes,
-      meals: finalMeals,
+      notes: body.notes,
+      meals: meals.length > 0 ? meals : undefined,
     });
 
-    console.log('[createNutritionPlan] Plan oluşturuldu:', plan.id);
     res.status(201).json({ success: true, data: plan });
   } catch (error) {
-    console.error('[createNutritionPlan] HATA:', error);
-    console.error('[createNutritionPlan] Stack:', error instanceof Error ? error.stack : 'N/A');
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -79,7 +83,6 @@ export const getActivePlan = async (req: AuthRequest, res: Response): Promise<vo
     const plan = await NutritionService.getActivePlan(userId);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
-    console.error('Aktif plan çekilirken hata:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -88,15 +91,19 @@ export const getNutritionPlan = async (req: AuthRequest, res: Response): Promise
   try {
     const { userId } = req.params;
 
-    if (!userId) {
-      res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
+    if (!userId || userId === 'me') {
+      if (!req.user?.sub) {
+        res.status(401).json({ success: false, message: 'Yetkisiz erişim.' });
+        return;
+      }
+      const plan = await NutritionService.getActivePlan(req.user.sub);
+      res.status(200).json({ success: true, data: plan });
       return;
     }
 
     const plan = await NutritionService.getActivePlan(userId);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
-    console.error('Beslenme planı çekilirken hata:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -104,29 +111,24 @@ export const getNutritionPlan = async (req: AuthRequest, res: Response): Promise
 export const updateNutritionPlan = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, targetCalories, protein, carbs, fat, notes, meals } = req.body as {
-      title?: string;
-      targetCalories?: number;
-      protein?: number;
-      carbs?: number;
-      fat?: number;
-      notes?: string;
-      meals?: Array<{ name: string; content?: string; time?: string; order?: number }>;
-    };
+    const body = req.body as Record<string, unknown>;
 
-    const plan = await NutritionService.updatePlan(id, {
-      title,
-      targetCalories,
-      protein,
-      carbs,
-      fat,
-      notes,
-      meals,
-    });
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Plan ID gerekli.' });
+      return;
+    }
 
+    const updateData: Record<string, unknown> = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.targetCalories !== undefined) updateData.targetCalories = Number(body.targetCalories);
+    if (body.protein !== undefined) updateData.protein = Number(body.protein);
+    if (body.carbs !== undefined) updateData.carbs = Number(body.carbs);
+    if (body.fat !== undefined) updateData.fat = Number(body.fat);
+    if (body.notes !== undefined) updateData.notes = body.notes;
+
+    const plan = await NutritionService.updatePlan(id, updateData);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
-    console.error('Beslenme planı güncellenirken hata:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -135,11 +137,14 @@ export const deleteNutritionPlan = async (req: AuthRequest, res: Response): Prom
   try {
     const { id } = req.params;
 
-    await NutritionService.deactivatePlan(id);
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Plan ID gerekli.' });
+      return;
+    }
 
-    res.status(200).json({ success: true, message: 'Beslenme planı silindi.' });
+    await NutritionService.deactivatePlan(id);
+    res.status(200).json({ success: true, message: 'Plan silindi.' });
   } catch (error) {
-    console.error('Beslenme planı silinirken hata:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -148,11 +153,14 @@ export const toggleMealComplete = async (req: AuthRequest, res: Response): Promi
   try {
     const { mealId } = req.params;
 
-    const updated = await NutritionService.toggleMealComplete(mealId);
+    if (!mealId) {
+      res.status(400).json({ success: false, message: 'Öğün ID gerekli.' });
+      return;
+    }
 
+    const updated = await NutritionService.toggleMealComplete(mealId);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    console.error('Öğün güncellenirken hata:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };

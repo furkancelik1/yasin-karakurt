@@ -24,6 +24,7 @@ import {
   Calculator,
   Clock,
   Trash,
+  Loader2,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -637,13 +638,53 @@ function QuickAssignModal({
 }
 
 // ── NewClientModal ────────────────────────────────────────────────────────────
-function NewClientModal({ onClose }: { onClose: () => void }) {
+interface ClientFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+function NewClientModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [loading, setLoading] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ClientFormData>();
+
+  const password = watch('password');
+
+  const onSubmit = async (data: ClientFormData) => {
+    setLoading(true);
+    try {
+      await api.post('/admin/clients', {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+      });
+      toast.success('Danışan başarıyla eklendi!');
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Danışan eklenirken hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
@@ -671,17 +712,84 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
             Yeni Danışan Ekle
           </h2>
           <p className="text-ash/50 font-light italic mt-2 text-sm leading-relaxed">
-            Bu özellik yakında aktif olacak. Danışan kaydı ve davet sistemi
-            entegrasyonu hazırlanıyor.
+            Danışanın giriş bilgilerini oluşturmak için formu doldurun.
           </p>
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl border border-white/10 text-ash/60 hover:text-white hover:border-white/20 font-bold text-sm uppercase tracking-widest transition-colors"
-        >
-          Kapat
-        </button>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-ash/70 text-xs font-bold uppercase mb-2 block">İsim</label>
+              <input
+                {...register('firstName', { required: 'İsim zorunludur' })}
+                className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold/50 outline-none"
+                placeholder="Ahmet"
+              />
+              {errors.firstName && <p className="text-rose-400 text-xs mt-1">{errors.firstName.message}</p>}
+            </div>
+            <div>
+              <label className="text-ash/70 text-xs font-bold uppercase mb-2 block">Soyisim</label>
+              <input
+                {...register('lastName', { required: 'Soyisim zorunludur' })}
+                className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold/50 outline-none"
+                placeholder="Yılmaz"
+              />
+              {errors.lastName && <p className="text-rose-400 text-xs mt-1">{errors.lastName.message}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase mb-2 block">E-posta</label>
+            <input
+              {...register('email', { 
+                required: 'E-posta zorunludur',
+                pattern: { value: /^\S+@\S+\.\S+$/i, message: 'Geçerli e-posta girin' }
+              })}
+              className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold/50 outline-none"
+              placeholder="ahmet@ornek.com"
+            />
+            {errors.email && <p className="text-rose-400 text-xs mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase mb-2 block">Şifre</label>
+            <input
+              type="password"
+              {...register('password', { 
+                required: 'Şifre zorunludur',
+                pattern: { 
+                  value: PASSWORD_REGEX, 
+                  message: 'En az 8 karakter, 1 büyük harf ve 1 rakam içermeli' 
+                }
+              })}
+              className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold/50 outline-none"
+              placeholder="Sifre123!"
+            />
+            {errors.password && <p className="text-rose-400 text-xs mt-1">{errors.password.message}</p>}
+          </div>
+
+          <div>
+            <label className="text-ash/70 text-xs font-bold uppercase mb-2 block">Şifre Tekrar</label>
+            <input
+              type="password"
+              {...register('confirmPassword', { 
+                required: 'Şifre tekrarı zorunludur',
+                validate: (value) => value === password || 'Şifreler eşleşmiyor'
+              })}
+              className="w-full bg-charcoal/60 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold/50 outline-none"
+              placeholder="Sifre123!"
+            />
+            {errors.confirmPassword && <p className="text-rose-400 text-xs mt-1">{errors.confirmPassword.message}</p>}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gold text-black font-bold uppercase hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <><UserPlus size={18} /> Danışan Ekle</>}
+          </button>
+        </form>
       </motion.div>
     </motion.div>
   );
@@ -841,7 +949,12 @@ export default function DanisanlarPage() {
 
       {/* Modal */}
       <AnimatePresence>
-        {showModal && <NewClientModal onClose={() => setShowModal(false)} />}
+        {showModal && <NewClientModal onClose={() => setShowModal(false)} onSuccess={() => {
+          api.get<{ success: boolean; data: ClientUser[] }>('/users/clients', { cache: 'no-store' })
+            .then(({ data }) => {
+              if (data.success) setClients(data.data ?? []);
+            });
+        }} />}
       </AnimatePresence>
     </div>
   );
