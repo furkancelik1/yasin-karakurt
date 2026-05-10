@@ -86,8 +86,12 @@ export function CheckInForm() {
       data.append('hungerLevel', formData.hungerLevel?.toString() || '');
       data.append('notes', formData.notes || '');
 
-      (formData.photos || []).forEach((file, i) => {
-        data.append('photos', file);
+      const angleMap: Record<string, string> = { 'Ön': 'front', 'Yan': 'side', 'Arka': 'back' };
+      photoPreviews.forEach(({ label, file }) => {
+        if (!file) return;
+        const prefix = angleMap[label] || 'other';
+        const renamed = new File([file], `${prefix}_${file.name}`, { type: file.type });
+        data.append('photos', renamed);
       });
 
       await api.post('/checkins', data, {

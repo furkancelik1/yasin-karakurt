@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'sonner';
-import './globals.css';
-
+import { AuthProvider } from '@/components/providers/AuthProvider';
+import '@/app/globals.css';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: '%s | Yasin Karakurt Coaching',
   },
   description:
-    'Bilimsel antrenman metodolojisi ve kişiselleştirilmiş beslenme programlarıyla vücudunu dönüştür.',
+    'Bilimsel antrenman metodolojisi ve bireysel beslenme programlariyla vucudunu donustur.',
   keywords: ['personal trainer', 'fitness', 'antrenman', 'beslenme', 'yasin karakurt'],
   authors: [{ name: 'Yasin Karakurt' }],
   creator: 'Yasin Karakurt',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'tr_TR',
     title: 'Yasin Karakurt Coaching | Premium Fitness Management',
-    description: 'Bilimsel antrenman metodolojisi ile vücudunu dönüştür.',
+    description: 'Bilimsel antrenman metodolojisi ile vucudunu donustur.',
     siteName: 'Yasin Karakurt Coaching',
   },
   twitter: {
@@ -48,7 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Toaster
           theme="dark"
           position="top-right"

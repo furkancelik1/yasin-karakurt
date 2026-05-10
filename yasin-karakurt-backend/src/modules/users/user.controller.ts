@@ -3,6 +3,7 @@ import { prisma } from '../../config/database';
 import { AuthRequest } from '../../types';
 import bcrypt from 'bcryptjs';
 import cloudinary from '../../config/cloudinary';
+import { getDailySummary } from './user.service';
 
 export const getMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -292,6 +293,22 @@ export const uploadProfileImage = async (req: AuthRequest, res: Response): Promi
     res.status(200).json({ success: true, data: { avatarUrl: result.secure_url } });
   } catch (error) {
     console.error('Fotoğraf yükleme hatası:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası.' });
+  }
+};
+
+export const getDailySummaryHandler = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Yetkisiz.' });
+      return;
+    }
+
+    const summary = await getDailySummary(userId);
+    res.status(200).json({ success: true, data: summary });
+  } catch (error) {
+    console.error('Günlük özet getirme hatası:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };

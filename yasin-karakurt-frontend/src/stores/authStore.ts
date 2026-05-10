@@ -44,9 +44,11 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (accessToken, refreshToken, user) => {
         set({ accessToken, refreshToken, user });
         if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', refreshToken);
-          setCookie('yk_access', accessToken);
+          try {
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            setCookie('yk_access', accessToken);
+          } catch { /* localStorage unavailable */ }
         }
       },
 
@@ -73,9 +75,11 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try { await api.post('/auth/logout'); } catch { /* ignore */ }
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          clearCookie('yk_access');
+          try {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            clearCookie('yk_access');
+          } catch { /* localStorage unavailable */ }
         }
         set({ user: null, accessToken: null, refreshToken: null });
       },

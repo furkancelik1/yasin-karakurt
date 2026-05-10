@@ -1,11 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import api from '@/lib/api';
 import type { TrainerCheckIn, CheckInStatus } from '@/types';
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
+
+// Helper to construct image URL correctly
+// Helper to construct image URL correctly
+const getImageUrl = (url: string | null) => {
+  if (!url) return null;
+  
+  // URL'nin içinde ne olursa olsun, en sondaki dosya adını (isim.png) koparıp alıyoruz
+  const filename = url.split('/').pop(); 
+  
+  // Ve kesin olarak doğru klasör yoluna ekliyoruz
+  return `${API_URL}/uploads/checkins/${filename}`;
+};;
 
 // ── Filter config ─────────────────────────────────────────────────────────────
 type FilterValue = 'ALL' | 'PENDING' | 'REVIEWED';
@@ -133,13 +147,10 @@ export default function DanisanGaleri() {
 }
 
 // ── CheckInCard ───────────────────────────────────────────────────────────────
-function CheckInCard({
-  checkin,
-  onClick,
-}: {
+const CheckInCard = forwardRef<HTMLDivElement, {
   checkin: TrainerCheckIn;
   onClick: () => void;
-}) {
+}>(({ checkin, onClick }, ref) => {
   const isPending         = checkin.status === 'PENDING';
   const { label, cls }    = STATUS_CFG[checkin.status];
   const name              = checkin.user.profile
@@ -149,7 +160,8 @@ function CheckInCard({
   const date              = new Date(checkin.submittedAt).toLocaleDateString('tr-TR', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
-  const photo             = checkin.photos[0]?.url ?? null;
+  const photoUrl          = checkin.photos[0]?.url ?? null;
+  const photoSrc          = getImageUrl(photoUrl);
 
   return (
     <motion.div
@@ -188,11 +200,10 @@ function CheckInCard({
 
       {/* Fotoğraf önizlemesi */}
       <div className="mx-4 rounded-xl overflow-hidden aspect-[3/4] bg-obsidian">
-        {photo ? (
-          // next/image yerine img: dinamik backend URL'i için
+        {photoSrc ? (
           // eslint-disable-next-line @next/next-eslint/no-img-element
           <img
-            src={photo}
+            src={photoSrc}
             alt={`${name} gelişim fotoğrafı`}
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
           />
@@ -223,7 +234,7 @@ function CheckInCard({
       </div>
     </motion.div>
   );
-}
+});
 
 // ── Yardımcı bileşenler ───────────────────────────────────────────────────────
 function GalleryLoader() {

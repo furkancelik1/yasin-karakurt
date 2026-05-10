@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ChevronDown } from 'lucide-react';
@@ -30,11 +30,21 @@ const STATS = [
 ];
 
 export function HeroSection() {
+  const [isMounted, setIsMounted] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const bgY   = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
   const textY = useTransform(scrollYProgress, [0, 1], ['0%', '12%']);
   const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
+  if (!isMounted) {
+    return <div className="min-h-screen bg-black" />;
+  }
 
   return (
     <section
@@ -63,7 +73,7 @@ export function HeroSection() {
       {/* ── İçerik ────────────────────────────────────── */}
       <motion.div
         style={{ y: textY, opacity }}
-        className="relative z-10 section-padding mx-auto w-full max-w-7xl pt-32"
+        className="relative z-10 section-padding mx-auto w-full max-w-7xl pt-20"
       >
         <motion.div
           variants={container}
@@ -91,15 +101,15 @@ export function HeroSection() {
           {/* Alt başlık */}
           <motion.p
             variants={fadeUp}
-            className="mt-7 max-w-xl text-base leading-relaxed text-ash-400 md:text-lg"
+            className="mt-5 max-w-xl text-base leading-relaxed text-ash-400 md:text-lg"
           >
             Bilimsel antrenman metodolojisi ve kişiselleştirilmiş beslenme protokolleriyle
             vücudunu dönüştür. Her adım, seninle birlikte tasarlandı.
           </motion.p>
 
           {/* CTA butonları */}
-          <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
-            <Link href="/uye-ol">
+          <motion.div variants={fadeUp} className="mt-5 flex flex-wrap items-center gap-4">
+            <Link href="/register?plan=1">
               <Button variant="gold" size="xl" className="group gap-3">
                 Programı Keşfet
                 <ArrowRight
@@ -118,7 +128,7 @@ export function HeroSection() {
           {/* İstatistikler */}
           <motion.div
             variants={fadeUp}
-            className="mt-16 flex flex-wrap gap-10 border-t border-white/8 pt-10"
+            className="mt-10 flex flex-wrap gap-10 border-t border-white/8 pt-10"
           >
             {STATS.map((stat) => (
               <div key={stat.label} className="flex flex-col gap-1">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend 
@@ -32,6 +33,7 @@ interface NutritionPlanData {
 const COLORS = ['#eab308', '#22c55e', '#3b82f6'];
 
 export default function NutritionPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [plan, setPlan] = useState<NutritionPlanData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,7 @@ export default function NutritionPage() {
           ),
         });
         toast.success(res.data.isDone ? 'Öğün tamamlandı!' : 'Öğün iptal edildi.');
+        router.refresh();
       }
     } catch (error) {
       toast.error('Güncelleme sırasında hata oluştu.');

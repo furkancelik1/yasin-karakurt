@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,6 +21,14 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import type { CheckInStatus } from '@/types';
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
+
+const getImageUrl = (url: string | null) => {
+  if (!url) return null;
+  const filename = url.split('/').pop();
+  return `${API_URL}/uploads/checkins/${filename}`;
+};
 
 // ── Local types ───────────────────────────────────────────────────────────────
 interface Photo { id: string; url: string; angle?: string }
@@ -90,7 +98,7 @@ function PhotoGallery({ photos }: { photos: Photo[] }) {
             animate="center"
             exit="exit"
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            src={photos[idx]?.url}
+            src={getImageUrl(photos[idx]?.url)}
             alt="Gelişim fotoğrafı"
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -140,7 +148,7 @@ function PhotoGallery({ photos }: { photos: Photo[] }) {
               onClick={() => go(i)}
               className={`flex-1 aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${i === idx ? 'border-gold shadow-gold-soft scale-[1.04]' : 'border-transparent opacity-50 hover:opacity-75'}`}
             >
-              <img src={photo.url} alt="" className="w-full h-full object-cover" />
+              <img src={getImageUrl(photo.url)} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
@@ -300,8 +308,8 @@ function ReviewForm({
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function CheckinDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CheckinDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
 
   const [data, setData]         = useState<PageData | null>(null);
@@ -491,7 +499,7 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
             {compareCheckin && compareCheckin.photos && compareCheckin.photos[0]?.url ? (
               <>
                 <img
-                  src={compareCheckin.photos[0].url}
+                  src={getImageUrl(compareCheckin.photos[0].url)}
                   alt="Önceki"
                   className="w-full h-full object-cover"
                 />
@@ -520,7 +528,7 @@ export default function CheckinDetailPage({ params }: { params: Promise<{ id: st
             {checkin?.photos && checkin.photos[0]?.url ? (
               <>
                 <img
-                  src={checkin.photos[0].url}
+                  src={getImageUrl(checkin.photos[0].url)}
                   alt="Sonra"
                   className="w-full h-full object-cover"
                 />

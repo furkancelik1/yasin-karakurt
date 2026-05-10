@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import api from '@/lib/api';
 import type { TrainerCheckIn } from '@/types';
 
@@ -29,6 +30,15 @@ interface DashboardStats {
 interface DashboardStatsResponse {
   success: boolean;
   data: DashboardStats;
+}
+
+interface DailySummary {
+  consumedCalories: number;
+  targetCalories: number;
+  remainingCalories: number;
+  meals: { completed: number; total: number };
+  weeklyProgress: { completed: number; total: number };
+  water: number;
 }
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -67,18 +77,27 @@ function TrainerDashboard() {
   const [checkins, setCheckins] = useState<TrainerCheckIn[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      api.get<DashboardStatsResponse>('/dashboard/stats'),
-      api.get<{ success: boolean; data: TrainerCheckIn[] }>('/checkins/trainer'),
-    ])
-      .then(([statsRes, checkinsRes]) => {
-        if (statsRes.data.success) setStats(statsRes.data.data);
-        if (checkinsRes.data.success) setCheckins(checkinsRes.data.data ?? []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, checkinsRes] = await Promise.all([
+        api.get<DashboardStatsResponse>('/dashboard/stats'),
+        api.get<{ success: boolean; data: TrainerCheckIn[] }>('/checkins/trainer'),
+      ]);
+      if (statsRes.data.success) setStats(statsRes.data.data);
+      if (checkinsRes.data.success) setCheckins(checkinsRes.data.data ?? []);
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData().finally(() => setLoading(false));
+  }, [fetchData]);
+
+  useEffect(() => {
+    window.addEventListener('focus', fetchData);
+    return () => window.removeEventListener('focus', fetchData);
+  }, [fetchData]);
 
   const pending = checkins.filter((c) => c.status === 'PENDING');
   const reviewed = checkins.filter((c) => c.status !== 'PENDING');
@@ -294,8 +313,84 @@ function TrainerDashboard() {
   );
 }
 
-// ── Client Dashboard (stub) ───────────────────────────────────────────────────
+// ── Client Dashboard ──────────────────────────────────────────────────────────
 function ClientDashboard({ name }: { name: string }) {
+  const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      const res = await api.get<{ success: boolean; data: DailySummary }>('/users/daily-summary');
+      if (res.data.success) setSummary(res.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSummary().finally(() => setLoading(false));
+  }, [fetchSummary]);
+
+  useEffect(() => {
+    window.addEventListener('focus', fetchSummary);
+    return () => window.removeEventListener('focus', fetchSummary);
+  }, [fetchSummary]);
+
+  // ── loading skeleton ──
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="space-y-8"
+      >
+        <header className="space-y-3">
+          <motion.div
+            className="h-3 w-32 rounded bg-white/10"
+            animate={{ opacity: [0.25, 0.55, 0.25] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="h-7 w-64 rounded bg-white/10"
+            animate={{ opacity: [0.25, 0.55, 0.25] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', delay: 0.1 }}
+          />
+          <motion.div
+            className="h-3 w-48 rounded bg-white/10"
+            animate={{ opacity: [0.25, 0.55, 0.25] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+          />
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[0, 1].map((i) => (
+            <motion.div
+              key={i}
+              className="rounded-2xl border border-white/10 bg-charcoal/60 p-6 space-y-4"
+              animate={{ opacity: [0.4, 0.7, 0.4] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', delay: 0.3 + i * 0.15 }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-28 rounded bg-white/10" />
+                <div className="h-4 w-4 rounded bg-white/10" />
+              </div>
+              <div className="h-8 w-20 rounded bg-white/10" />
+              <div className="h-1 w-full rounded bg-white/10" />
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+    );
+  }
+
+  const pct = summary
+    ? Math.round((summary.weeklyProgress.completed / summary.weeklyProgress.total) * 100)
+    : 0;
+  const calPct = summary
+    ? Math.round((summary.remainingCalories / summary.targetCalories) * 100)
+    : 0;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header>
@@ -307,26 +402,38 @@ function ClientDashboard({ name }: { name: string }) {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Haftalık İlerleme */}
         <div className="bg-charcoal/60 border border-white/10 rounded-2xl p-6 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-ash/50 text-xs uppercase tracking-widest font-bold">Haftalık İlerleme</p>
             <Zap size={16} className="text-gold" />
           </div>
-          <p className="text-3xl font-display text-white">3 / 5</p>
-          <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-            <div className="bg-gold h-full w-[60%]" />
-          </div>
+          <p className="text-3xl font-display text-white">
+            {summary?.weeklyProgress.completed ?? 0} / {summary?.weeklyProgress.total ?? 5}
+          </p>
+          <ProgressBar value={pct} color="bg-gold" />
         </div>
 
+        {/* Kalan Kalori */}
         <div className="bg-charcoal/60 border border-white/10 rounded-2xl p-6 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-ash/50 text-xs uppercase tracking-widest font-bold">Kalan Kalori</p>
             <Flame size={16} className="text-emerald-400" />
           </div>
-          <p className="text-3xl font-display text-white">1.240</p>
-          <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-            <div className="bg-emerald-400 h-full w-[48%]" />
-          </div>
+          {!summary?.targetCalories ? (
+            <p className="text-ash/40 text-sm font-medium">Hedef Belirlenmedi</p>
+          ) : (
+            <>
+              <p className="text-3xl font-display text-white">
+                {summary.remainingCalories.toLocaleString('tr-TR')}
+              </p>
+              <p className="text-ash/50 text-xs">
+                {summary.consumedCalories.toLocaleString('tr-TR')} /{' '}
+                {summary.targetCalories.toLocaleString('tr-TR')} kcal
+              </p>
+              <ProgressBar value={calPct} color="bg-emerald-400" />
+            </>
+          )}
         </div>
       </div>
     </div>

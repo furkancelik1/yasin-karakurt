@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { getClients, getUserById, getMyProfile, updateMyProfile, changePassword, uploadProfileImage } from './user.controller';
+import { getClients, getUserById, getMyProfile, updateMyProfile, changePassword, uploadProfileImage, getDailySummaryHandler } from './user.controller';
 import { getMyPrograms } from '../programs/userProgram.controller';
 import { authenticate, authorize } from '../../middleware/auth.middleware';
 import { upload } from '../../config/cloudinary';
 
 const router = Router();
 
+router.get('/daily-summary', authenticate, getDailySummaryHandler);
 router.get('/clients', authenticate, authorize('TRAINER', 'ADMIN'), getClients);
 router.get('/program', authenticate, getMyPrograms);
 router.get('/profile', authenticate, getMyProfile);

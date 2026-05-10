@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useReactToPrint } from 'react-to-print';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, Calendar, Clock, Beef, Croissant, Droplets, CheckCircle, Circle, Plus, Loader2, Download, Printer } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Utensils, Calendar, Clock, Beef, Croissant, Droplets, CheckCircle, Circle, Plus, Loader2, Printer, FileDown } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import api from '@/lib/api';
 
 interface Meal {
@@ -35,16 +37,174 @@ interface ApiResponse {
   data: NutritionPlan | null;
 }
 
+const interBoldBase64 = `AAEALAAAAABAAQAAAJRgAAIlQoGI2WgXY7xNmkJ2l8D/+fzB/m2YQAIAAAIABgAAAABAAIRkQwVEAABAAABAAIDFAAJABIAAQADAAQACQASAAOAADAAMAAkAEgAHAAOAAsADwATABcAGAAZAB4AHwAgACEAIQAjACQAJQAmACcAKAApACsALAAuAC8AMAAzADQAOAA4ADkAOwA8AD0APgA/AD8AQABCAEIARABFAEYARwBIAEkAPABJAE4ATwBRAFJAVEBVQFZAV0BYQFlAWUBaQFtAXEBdQF5AX0BgcGBwYHRgd2B4YHhgeWB5YHlgeWB5YHlgeXB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAdoB3AHbAdsB3AHbAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHYAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YGYAdmBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAdgBmIOYAZiDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIA=`;
+
+const interNormalBase64 = `AAEALAAAAABAAQAAAJRgAAIlQoGI2WgXY7xNmkJ2l8D/+fzB/m2YQAIAAAIABgAAAABAAIRkQwVEAABAAABAAIDFAAJABIAAQADAAQACQASAAOAADAAMAAkAEgAHAAOAAsADwATABcAGAAZAB4AHwAgACEAIQAjACQAJQAmACcAKAApACsALAAuAC8AMAAzADQAOAA4ADkAOwA8AD0APgA/AD8AQABCAEIARABFAEYARwBIAEkAPABJAE4ATwBRAFJAVEBVQFZAV0BYQFlAWUBaQFtAXEBdQF5AX0BgcGBwYHRgd2B4YHhgeWB5YHlgeWB5YHlgeXB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAdoB3AHbAdsB3AHbAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHYAdmBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAdgBmIOYAZiDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIA=`;
+
+function fixTurkish(text: string): string {
+  return text
+    .replace(/ğ/g, 'ğ')
+    .replace(/Ğ/g, 'Ğ')
+    .replace(/ş/g, 'ş')
+    .replace(/Ş/g, 'Ş')
+    .replace(/ı/g, 'ı')
+    .replace(/İ/g, 'İ')
+    .replace(/ç/g, 'ç')
+    .replace(/Ç/g, 'Ç')
+    .replace(/ö/g, 'ö')
+    .replace(/Ö/g, 'Ö')
+    .replace(/ü/g, 'ü')
+    .replace(/Ü/g, 'Ü');
+}
+
+function generatePDF(plan: NutritionPlan, clientNameParam?: string): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 20;
+
+  doc.addFileToVFS('Inter-Bold.ttf', interBoldBase64);
+  doc.addFont('Inter-Bold.ttf', 'Inter', 'bold');
+  doc.addFileToVFS('Inter-Regular.ttf', interNormalBase64);
+  doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+  doc.setFont('Inter');
+
+  doc.setFillColor(212, 175, 55);
+  doc.rect(0, 0, pageWidth, 35, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('Inter', 'bold');
+  doc.text(fixTurkish('Yasin Karakurt Coaching'), margin, 18);
+  doc.setFontSize(12);
+  doc.setFont('Inter', 'normal');
+  doc.text(fixTurkish('Kişisel Beslenme Programı'), margin, 28);
+
+  if (clientNameParam) {
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text(`${fixTurkish(clientNameParam)}`, pageWidth - margin, 18, { align: 'right' });
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.text(fixTurkish(new Date().toLocaleDateString('tr-TR')), pageWidth - margin, 28, { align: 'right' });
+
+  y = 50;
+  doc.setTextColor(26, 26, 26);
+  doc.setFontSize(14);
+  doc.setFont('Inter', 'bold');
+  doc.text(fixTurkish(plan.title || 'Beslenme Programı'), margin, y);
+
+  y += 15;
+
+  const cardWidth = (contentWidth - 15) / 4;
+  const cardHeight = 40;
+
+  const colors = [
+    { bg: [255, 248, 230], title: '#D4AF37', value: '#1A1A1A', label: 'Protein' },
+    { bg: [230, 255, 240], title: '#4CAF50', value: '#1A1A1A', label: 'Karbonhidrat' },
+    { bg: [230, 245, 255], title: '#2196F3', value: '#1A1A1A', label: 'Yağ' },
+    { bg: [255, 245, 230], title: '#D4AF37', value: '#1A1A1A', label: 'Kalori' },
+  ];
+
+  const values = [`${plan.protein}g`, `${plan.carbs}g`, `${plan.fat}g`, `${plan.targetCalories}`];
+
+  for (let i = 0; i < 4; i++) {
+    const x = margin + i * (cardWidth + 5);
+doc.setFillColor(colors[i].bg[0], colors[i].bg[1], colors[i].bg[2]);    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'S');
+
+    doc.setFontSize(8);
+    doc.setFont('Inter', 'normal');
+    const textColor = colors[i].title === '#D4AF37' ? [212, 175, 55] : [33, 150, 243];
+doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text(fixTurkish(colors[i].label), x + cardWidth / 2, y + 12, { align: 'center' });
+
+    doc.setFontSize(16);
+    doc.setFont('Inter', 'bold');
+    doc.setTextColor(26, 26, 26);
+    doc.text(values[i], x + cardWidth / 2, y + 28, { align: 'center' });
+  }
+
+  y += cardHeight + 15;
+
+  const tableStartY = y;
+  const rowHeight = 10;
+  const colWidths = [60, 30, contentWidth - 90];
+
+  doc.setFillColor(26, 26, 26);
+  doc.rect(margin, y, contentWidth, rowHeight, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont('Inter', 'bold');
+  doc.text(fixTurkish('Öğün Adı'), margin + 5, y + 7);
+  doc.text(fixTurkish('Saat'), margin + colWidths[0] + 5, y + 7);
+  doc.text(fixTurkish('İçerik'), margin + colWidths[0] + colWidths[1] + 5, y + 7);
+
+  y += rowHeight;
+
+  const sortedMeals = [...plan.meals].sort((a, b) => a.order - b.order);
+
+  sortedMeals.forEach((meal, index) => {
+    doc.setFillColor(index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250);
+    doc.rect(margin, y, contentWidth, rowHeight, 'F');
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.1);
+    doc.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
+
+    doc.setTextColor(26, 26, 26);
+    doc.setFontSize(9);
+    doc.setFont('Inter', 'bold');
+    doc.text(fixTurkish(meal.name), margin + 5, y + 7);
+    doc.setFont('Inter', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(meal.time, margin + colWidths[0] + 5, y + 7);
+    doc.setTextColor(50, 50, 50);
+    const content = meal.content ? fixTurkish(meal.content.substring(0, 50)) : '-';
+    doc.text(content, margin + colWidths[0] + colWidths[1] + 5, y + 7);
+
+    y += rowHeight;
+  });
+
+  y += 10;
+
+  if (plan.notes) {
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(margin, y, contentWidth, 30, 2, 2, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.roundedRect(margin, y, contentWidth, 30, 2, 2, 'S');
+    doc.setTextColor(26, 26, 26);
+    doc.setFontSize(9);
+    doc.setFont('Inter', 'bold');
+    doc.text(fixTurkish('Koç Notları'), margin + 5, y + 8);
+    doc.setFont('Inter', 'normal');
+    doc.setFontSize(8);
+    const noteLines = doc.splitTextToSize(fixTurkish(plan.notes), contentWidth - 10);
+    doc.text(noteLines, margin + 5, y + 16);
+  }
+
+  y = 280;
+  doc.setFillColor(212, 175, 55);
+  doc.rect(0, y - 5, pageWidth, 25, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.text(fixTurkish('Yasin Karakurt Coaching - Profesyonel Koçluk Hizmetleri'), pageWidth / 2, y + 3, { align: 'center' });
+  doc.text(fixTurkish(new Date().toLocaleDateString('tr-TR')), pageWidth / 2, y + 10, { align: 'center' });
+
+  return doc;
+}
+
 export default function BeslenmePage() {
+  const router = useRouter();
   const [plan, setPlan] = useState<NutritionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [waterAmount, setWaterAmount] = useState(0);
   const [waterLoading, setWaterLoading] = useState(false);
   const [clientName, setClientName] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const dailyGoal = 3000;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const printer = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Beslenme_Plani_${clientName || 'Danisan'}`,
@@ -84,12 +244,27 @@ export default function BeslenmePage() {
     try {
       await api.post('/water/log', { amount: 250 });
       setWaterAmount(prev => prev + 250);
+      router.refresh();
     } catch (error) {
       console.error('Su ekleme hatası:', error);
     } finally {
       setWaterLoading(false);
     }
   };
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (!plan) return;
+    setPdfLoading(true);
+    try {
+      const doc = generatePDF(plan, clientName || undefined);
+      const fileName = `Beslenme_Plani_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [plan, clientName]);
 
   const waterPercentage = Math.min((waterAmount / dailyGoal) * 100, 100);
 
@@ -140,11 +315,16 @@ export default function BeslenmePage() {
           <p className="text-ash/50 mt-2 text-sm">Sizin için hazırlanan kişisel beslenme planınız</p>
         </div>
         <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-bold no-print"
+          onClick={handleDownloadPDF}
+          disabled={pdfLoading}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors text-sm font-bold"
         >
-          <Printer size={16} />
-          İndir
+          {pdfLoading ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <FileDown size={16} />
+          )}
+          İndir PDF
         </button>
       </div>
 
@@ -309,64 +489,12 @@ export default function BeslenmePage() {
         <p className="text-center text-ash/50 text-xs mt-3 no-print">+250ml Su Ekle</p>
       </motion.div>
 
-      {/* Print Section - Clean A4 Layout */}
-      <div ref={printRef} className="hidden print:block p-8 bg-white text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
-        <div className="border-b-2 border-gray-800 pb-4 mb-6">
-          <h1 className="text-2xl font-bold text-black">Yasin Karakurt Coaching</h1>
-          <p className="text-sm text-gray-600">Kişisel Beslenme Programı</p>
-        </div>
-        
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">{plan.title || 'Beslenme Programı'}</h2>
-          <p className="text-sm text-gray-600">Tarih: {new Date(plan.createdAt).toLocaleDateString('tr-TR')}</p>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2 mb-6 p-4 bg-gray-100 rounded-none" style={{ border: '1px solid #000' }}>
-          <div className="text-center">
-            <p className="font-bold text-lg">{plan.protein}g</p>
-            <p className="text-xs text-gray-600">Protein</p>
+      <div ref={printRef} className="hidden print:block">
+        <div className="p-8 bg-white text-black">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-black">Yasin Karakurt Coaching</h1>
+            <p className="text-sm text-gray-600">Kişisel Beslenme Programı</p>
           </div>
-          <div className="text-center">
-            <p className="font-bold text-lg">{plan.carbs}g</p>
-            <p className="text-xs text-gray-600">Karbonhidrat</p>
-          </div>
-          <div className="text-center">
-            <p className="font-bold text-lg">{plan.fat}g</p>
-            <p className="text-xs text-gray-600">Yağ</p>
-          </div>
-          <div className="text-center">
-            <p className="font-bold text-lg">{plan.targetCalories}</p>
-            <p className="text-xs text-gray-600">Kalori</p>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="font-bold text-lg mb-3 border-b border-gray-300 pb-2">Öğünler</h3>
-          <div className="space-y-3">
-            {plan.meals && plan.meals.length > 0 ? plan.meals.sort((a, b) => a.order - b.order).map((meal) => (
-              <div key={meal.id} className="p-3 border border-gray-300" style={{ border: '1px solid #ccc' }}>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{meal.name}</span>
-                  <span className="text-gray-500 text-sm">{meal.time}</span>
-                </div>
-                <p className="text-sm text-gray-700 mt-1">{meal.content || '-'}</p>
-              </div>
-            )) : (
-              <p className="text-gray-500 italic">Öğün bilgisi bulunmuyor.</p>
-            )}
-          </div>
-        </div>
-
-        {plan.notes && (
-          <div className="mt-6 p-4 bg-gray-100" style={{ border: '1px solid #ccc' }}>
-            <h3 className="font-medium mb-2">Koç Notları</h3>
-            <p className="text-sm">{plan.notes}</p>
-          </div>
-        )}
-
-        <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
-          <p>Yasin Karakurt Coaching - Profesyonel Koçluk Hizmetleri</p>
-          <p>{new Date().toLocaleDateString('tr-TR')}</p>
         </div>
       </div>
     </div>
