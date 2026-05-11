@@ -9,18 +9,13 @@ import type { TrainerCheckIn, CheckInStatus } from '@/types';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
 
-// Helper to construct image URL correctly
-// Helper to construct image URL correctly
 const getImageUrl = (url: string | null) => {
-  if (!url) return null;
-  
-  // URL'nin içinde ne olursa olsun, en sondaki dosya adını (isim.png) koparıp alıyoruz
+  if (!url) return '';
+  // URL içinde tam yol olsa da (uploads/...) veya sadece dosya adı olsa da (photo-...) 
+  // sadece en sondaki dosya adını alıp doğru klasörle birleştirir.
   const filename = url.split('/').pop(); 
-  
-  // Ve kesin olarak doğru klasör yoluna ekliyoruz
-  return `${API_URL}/uploads/checkins/${filename}`;
-};;
-
+  return `http://localhost:4000/uploads/checkins/${filename}`;
+};
 // ── Filter config ─────────────────────────────────────────────────────────────
 type FilterValue = 'ALL' | 'PENDING' | 'REVIEWED';
 

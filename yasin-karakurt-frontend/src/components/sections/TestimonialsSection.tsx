@@ -1,32 +1,40 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
 import { Star, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 /* ─────────────────────────────────────────────────────────
+   Base URL for images
+   ───────────────────────────────────────────────────────── */
+const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
+  ? process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '') 
+  : 'http://localhost:4000';
+
+/* ─────────────────────────────────────────────────────────
    Before / After Slider
    ───────────────────────────────────────────────────────── */
 interface SliderProps {
-  /** Gerçek fotoğraf geldiğinde bu prop'ları Image src ile değiştir */
-  beforeBg?: string;
-  afterBg?: string;
+  beforeSrc?: string;
+  afterSrc?: string;
   beforeLabel?: string;
   afterLabel?: string;
 }
 
 function BeforeAfterSlider({
-  beforeBg  = 'bg-gradient-to-b from-charcoal-100 via-charcoal-200 to-obsidian',
-  afterBg   = 'bg-gradient-to-b from-charcoal-50 via-charcoal-100 to-charcoal-200',
+  beforeSrc,
+  afterSrc,
   beforeLabel = 'ÖNCE',
   afterLabel  = 'SONRA',
 }: SliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition]   = useState(42);   // % — varsayılan "after" ağırlıklı
+  const [position, setPosition]   = useState(42);
   const [dragging, setDragging]   = useState(false);
-  const [hinted,   setHinted]     = useState(false); // ilk etkileşim animasyonu
+  const [hinted, setHinted]       = useState(false);
+  const [hasError, setHasError]   = useState({ before: false, after: false });
 
   const clamp = (v: number) => Math.min(Math.max(v, 3), 97);
 
@@ -52,11 +60,13 @@ function BeforeAfterSlider({
   /* Touch */
   const onTouchMove = (e: React.TouchEvent) => moveTo(e.touches[0].clientX);
 
-  /* İlk gösterimde küçük 'hint' animasyonu */
+  /* Hint animation */
   useEffect(() => {
     const t = setTimeout(() => setHinted(true), 800);
     return () => clearTimeout(t);
   }, []);
+
+  const hasImages = beforeSrc || afterSrc;
 
   return (
     <div
@@ -71,29 +81,50 @@ function BeforeAfterSlider({
       onTouchMove={onTouchMove}
     >
       {/* ── SONRA katmanı (arka plan) ── */}
-      <div className={cn('absolute inset-0', afterBg)}>
-        {/* Vücut yer tutucu desen — silinebilir */}
-        <div className="absolute inset-0 opacity-20"
+      <div className="absolute inset-0">
+        {afterSrc && !hasError.after ? (
+          <Image
+            src={afterSrc}
+            alt={afterLabel}
+            fill
+            className="object-cover"
+            onError={() => setHasError(prev => ({ ...prev, after: true }))}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal-50 via-charcoal-100 to-charcoal-200 opacity-30" />
+        )}
+        <div 
+          className="absolute inset-0 opacity-10"
           style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(201,168,76,0.04) 40px,rgba(201,168,76,0.04) 41px)' }}
         />
-        <span className="absolute bottom-4 right-4 text-[10px] tracking-luxury uppercase text-gold/70 font-semibold">
+        <span className="absolute bottom-4 right-4 text-[10px] tracking-luxury uppercase text-gold/70 font-semibold bg-black/60 px-2 py-1 rounded">
           {afterLabel}
         </span>
-        {/* Gerçek fotoğraf → buraya <Image src={afterSrc} fill alt="sonra" className="object-cover" /> */}
       </div>
 
       {/* ── ÖNCE katmanı — clip ile kırpılır ── */}
       <div
-        className={cn('absolute inset-0', beforeBg)}
+        className="absolute inset-0"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
       >
-        <div className="absolute inset-0 opacity-30"
+        {beforeSrc && !hasError.before ? (
+          <Image
+            src={beforeSrc}
+            alt={beforeLabel}
+            fill
+            className="object-cover"
+            onError={() => setHasError(prev => ({ ...prev, before: true }))}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal-100 via-charcoal-200 to-obsidian opacity-30" />
+        )}
+        <div 
+          className="absolute inset-0 opacity-10"
           style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(0,0,0,0.08) 40px,rgba(0,0,0,0.08) 41px)' }}
         />
-        <span className="absolute bottom-4 left-4 text-[10px] tracking-luxury uppercase text-ash-500 font-semibold">
+        <span className="absolute bottom-4 left-4 text-[10px] tracking-luxury uppercase text-ash-500 font-semibold bg-black/60 px-2 py-1 rounded">
           {beforeLabel}
         </span>
-        {/* Gerçek fotoğraf → buraya <Image src={beforeSrc} fill alt="önce" className="object-cover" /> */}
       </div>
 
       {/* ── Bölücü çizgi ── */}
@@ -123,7 +154,7 @@ function BeforeAfterSlider({
 }
 
 /* ─────────────────────────────────────────────────────────
-   Veri
+   Data with real image paths
    ───────────────────────────────────────────────────────── */
 const STORIES = [
   {
@@ -134,8 +165,8 @@ const STORIES = [
     badgeVariant: 'gold' as const,
     rating:   5,
     quote:    '"Hayatımın en iyi kararı. Sadece kilo vermekle kalmadım; enerji seviyem, uykum ve özgüvenim tamamen değişti. Yasin\'in metodolojisi gerçekten fark yaratıyor."',
-    beforeBg: 'bg-gradient-to-b from-[#1a1a1a] via-[#111] to-obsidian',
-    afterBg:  'bg-gradient-to-b from-charcoal-50 via-[#222] to-charcoal-200',
+    beforeSrc: `${IMAGE_BASE_URL}/uploads/checkins/Photo-1.png`,
+    afterSrc:  `${IMAGE_BASE_URL}/uploads/checkins/Photo-2.png`,
   },
   {
     name:     'Selin M.',
@@ -145,8 +176,8 @@ const STORIES = [
     badgeVariant: 'success' as const,
     rating:   5,
     quote:    '"Daha önce pek çok antrenörle çalıştım ama bu kadar bilimsel ve kişiselleştirilmiş bir program görmedim. 16 haftada formuma kavuştum."',
-    beforeBg: 'bg-gradient-to-b from-[#181818] via-obsidian to-[#0f0f0f]',
-    afterBg:  'bg-gradient-to-b from-charcoal-100 via-charcoal-50 to-charcoal-200',
+    beforeSrc: `${IMAGE_BASE_URL}/uploads/checkins/Photo-2-1.png`,
+    afterSrc:  `${IMAGE_BASE_URL}/uploads/checkins/Photo-2-2.png`,
   },
   {
     name:     'Murat B.',
@@ -156,8 +187,8 @@ const STORIES = [
     badgeVariant: 'gold' as const,
     rating:   5,
     quote:    '"Kısa sürede bu kadar sonuç alacağımı hiç tahmin etmezdim. Program çok pratik ve mobil uygulama sayesinde her yerde takip edebildim."',
-    beforeBg: 'bg-gradient-to-b from-[#1c1c1c] via-[#131313] to-obsidian',
-    afterBg:  'bg-gradient-to-b from-[#252525] via-charcoal-100 to-charcoal-200',
+    beforeSrc: `${IMAGE_BASE_URL}/uploads/checkins/Photo-3.png`,
+    afterSrc:  '', // No "after" image for this story - shows gradient fallback
   },
 ];
 
@@ -214,10 +245,10 @@ export function TestimonialsSection() {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 + i * 0.14 }}
               className="group flex flex-col gap-5"
             >
-              {/* Before/After Slider */}
+              {/* Before/After Slider with real images */}
               <BeforeAfterSlider
-                beforeBg={story.beforeBg}
-                afterBg={story.afterBg}
+                beforeSrc={story.beforeSrc}
+                afterSrc={story.afterSrc}
               />
 
               {/* Kart içeriği */}
