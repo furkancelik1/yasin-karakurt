@@ -187,8 +187,8 @@ const STORIES = [
     badgeVariant: 'gold' as const,
     rating:   5,
     quote:    '"Kısa sürede bu kadar sonuç alacağımı hiç tahmin etmezdim. Program çok pratik ve mobil uygulama sayesinde her yerde takip edebildim."',
-    beforeSrc: `${IMAGE_BASE_URL}/uploads/checkins/Photo-3.png`,
-    afterSrc:  '', // No "after" image for this story - shows gradient fallback
+    beforeSrc: `${IMAGE_BASE_URL}/uploads/checkins/Photo-3-1.png`,
+    afterSrc:  `${IMAGE_BASE_URL}/uploads/checkins/Photo-3-2.png`,
   },
 ];
 
