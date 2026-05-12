@@ -807,7 +807,7 @@ export default function DanisanlarPage() {
 
   useEffect(() => {
     api
-      .get<{ success: boolean; data: ClientUser[] }>('/users/clients', { cache: 'no-store' })
+.get<{ success: boolean; data: ClientUser[] }>('/users/clients')
       .then(({ data }) => {
         console.log('[Danisanlar] API Response:', data);
         if (data.success) {
@@ -950,7 +950,7 @@ export default function DanisanlarPage() {
       {/* Modal */}
       <AnimatePresence>
         {showModal && <NewClientModal onClose={() => setShowModal(false)} onSuccess={() => {
-          api.get<{ success: boolean; data: ClientUser[] }>('/users/clients', { cache: 'no-store' })
+          api.get<{ success: boolean; data: ClientUser[] }>('/users/clients')
             .then(({ data }) => {
               if (data.success) setClients(data.data ?? []);
             });

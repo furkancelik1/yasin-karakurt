@@ -24,8 +24,8 @@ import type { CheckInStatus } from '@/types';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
 
-const getImageUrl = (url: string | null) => {
-  if (!url) return null;
+const getImageUrl = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined;
   const filename = url.split('/').pop();
   return `${API_URL}/uploads/checkins/${filename}`;
 };

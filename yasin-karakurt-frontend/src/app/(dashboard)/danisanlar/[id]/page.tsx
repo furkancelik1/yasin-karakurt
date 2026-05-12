@@ -603,7 +603,7 @@ const [programs, setPrograms] = useState<UserProgram[]>([]);
 
       <div className="border-t border-gold/10 pt-8">
         <div className="bg-charcoal/30 border border-white/5 rounded-2xl p-4 mb-6">
-          <ProgressChart userId={params.id} />
+          <ProgressChart userId={Array.isArray(params.id) ? params.id[0] : params.id} />
         </div>
 
         <h2 className="text-lg font-display text-white uppercase tracking-wide mb-6 flex items-center gap-2">

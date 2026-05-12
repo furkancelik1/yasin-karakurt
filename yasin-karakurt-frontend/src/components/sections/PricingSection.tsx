@@ -197,7 +197,7 @@ export function PricingSection() {
 
                   {/* CTA butonu — en alta itilir */}
                   <div className="mt-auto pt-2">
-                    <Link href={`/uye-ol?plan=${plan.id}`} className="block w-full">
+                    <Link href={`/register?plan=${plan.id}`} className="block w-full">
                       <Button
                         variant={plan.featured ? 'gold' : 'gold-outline'}
                         size="lg"

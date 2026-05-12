@@ -36,7 +36,7 @@ export function CheckInForm() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CheckInFormData>({});
-  const [photoPreviews, setPhotoPreviews] = useState<{ url: string; label: string }[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<{ url: string; label: string; file?: File }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateField = (field: keyof CheckInFormData, value: any) => {

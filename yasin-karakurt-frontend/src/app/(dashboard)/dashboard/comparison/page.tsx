@@ -85,7 +85,7 @@ export default function ComparisonPage() {
       {/* Header */}
       <header className="flex items-center gap-4">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/dashboard')}
           className="p-2 border border-white/10 rounded-lg text-white/50 hover:text-amber-400 transition-colors"
         >
           <ArrowLeft size={18} />
