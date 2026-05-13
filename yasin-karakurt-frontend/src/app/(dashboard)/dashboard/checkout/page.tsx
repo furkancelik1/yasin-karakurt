@@ -48,9 +48,9 @@ function CheckoutContent() {
         if (res.data.success) {
           const { checkoutFormContent, paymentPageUrl } = res.data.data || {};
 
-          if (paymentPageUrl) {
-            window.location.href = paymentPageUrl;
-            return;
+        if (paymentPageUrl) {
+        window.location.href = paymentPageUrl; // <-- KESİN ÇÖZÜM
+        return;         
           }
 
           if (checkoutFormContent) {

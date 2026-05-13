@@ -28,10 +28,13 @@ export const initiate = async (req: AuthRequest, res: Response, next: NextFuncti
       return;
     }
 
-    const formContent = (data as { checkoutFormContent?: string }).checkoutFormContent;
+    // DİKKAT: paymentPageUrl artık frontend'e iletiliyor
     res.status(201).json({
       success: true,
-      data: { checkoutFormContent: formContent },
+      data: { 
+        checkoutFormContent: data.checkoutFormContent,
+        paymentPageUrl: data.paymentPageUrl 
+      },
     });
   } catch (err) {
     next(err);

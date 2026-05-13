@@ -57,10 +57,13 @@ const initiate = async (req, res, next) => {
             res.status(200).json({ success: false, message: data.error });
             return;
         }
-        const formContent = data.checkoutFormContent;
+        // DİKKAT: paymentPageUrl artık frontend'e iletiliyor
         res.status(201).json({
             success: true,
-            data: { checkoutFormContent: formContent },
+            data: {
+                checkoutFormContent: data.checkoutFormContent,
+                paymentPageUrl: data.paymentPageUrl
+            },
         });
     }
     catch (err) {

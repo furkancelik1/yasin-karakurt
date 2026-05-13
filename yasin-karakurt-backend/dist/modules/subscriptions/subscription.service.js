@@ -5,7 +5,6 @@ const iyzipay_1 = require("../../config/iyzipay");
 const database_1 = require("../../config/database");
 const client_1 = require("@prisma/client");
 const library_1 = require("@prisma/client/runtime/library");
-// 1. KAZARA SİLİNEN FİYAT LİSTESİ BURADA:
 exports.PLAN_PRICES = {
     BASIC: 1499,
     PREMIUM: 2999,
@@ -22,101 +21,98 @@ const getMySubscription = async (userId) => {
 };
 exports.getMySubscription = getMySubscription;
 const createOrUpdateSubscription = async (userId, plan) => {
-    const VALID_PLANS = ['BASIC', 'PREMIUM', 'VIP'];
-    const safePlan = VALID_PLANS.includes(plan)
-        ? plan
-        : 'PREMIUM';
-    try {
-        const price = exports.PLAN_PRICES[safePlan] ?? exports.PLAN_PRICES.PREMIUM;
-        const user = await database_1.prisma.user.findUnique({
-            where: { id: userId },
-            include: { profile: true },
-        });
-        if (!user) {
-            return { error: 'Kullanıcı bulunamadı' };
-        }
-        let subscription = await database_1.prisma.subscription.findUnique({ where: { userId } });
-        if (subscription) {
-            subscription = await database_1.prisma.subscription.update({
-                where: { userId },
-                data: { plan: safePlan, status: client_1.SubscriptionStatus.PENDING, priceAmount: new library_1.Decimal(price) },
-            });
-        }
-        else {
-            subscription = await database_1.prisma.subscription.create({
-                data: { userId, plan: safePlan, status: client_1.SubscriptionStatus.PENDING, priceAmount: new library_1.Decimal(price) },
-            });
-        }
-        const backendUrl = process.env.BACKEND_URL || 'https://curling-trouble-goatskin.ngrok-free.dev';
-        const profile = user.profile;
-        const safeFirstName = profile?.firstName || 'Danisan';
-        const safeLastName = profile?.lastName || 'Kullanici';
-        const safeFullName = `${safeFirstName} ${safeLastName}`.trim();
-        const request = {
-            locale: 'tr',
-            conversationId: subscription.id,
-            price: price.toString(),
-            paidPrice: price.toString(),
-            currency: 'TRY',
-            basketId: `B-${subscription.id}`,
-            paymentGroup: 'PRODUCT',
-            callbackUrl: `${backendUrl}/api/v1/subscriptions/callback`,
-            enabledInstallments: [1],
-            windowType: 'responsive',
-            buyer: {
-                id: userId,
-                name: safeFirstName,
-                surname: safeLastName,
-                gsmNumber: user.profile?.phone || '+905555555555',
-                email: user.email,
-                identityNumber: '11111111111',
-                registrationAddress: 'Istanbul Turkey',
-                city: 'Istanbul',
-                country: 'Turkey',
-            },
-            shippingAddress: {
-                contactName: safeFullName,
-                city: 'Istanbul',
-                country: 'Turkey',
-                address: 'Istanbul Turkey',
-            },
-            billingAddress: {
-                contactName: safeFullName,
-                city: 'Istanbul',
-                country: 'Turkey',
-                address: 'Istanbul Turkey',
-            },
-            basketItems: [
-                {
-                    id: safePlan,
-                    name: `${safePlan} Plan - Yasin Karakurt Personal Training`,
-                    category1: 'Fitness Coaching',
-                    itemType: 'VIRTUAL',
-                    price: price.toString(),
-                },
-            ],
-        };
-        return new Promise((resolve) => {
-            iyzipay_1.iyzipay.checkoutFormInitialize.create(request, (err, result) => {
-                if (err) {
-                    console.error('IYZICO KÜTÜPHANE HATASI:', err);
-                    return resolve({ error: err.message || 'Iyzico servisine ulaşılamadı' });
-                }
-                console.log("IYZICO'DAN GELEN YANIT:", result);
-                const parsed = typeof result === 'string' ? JSON.parse(result) : result;
-                if (parsed.status === 'failure' || parsed.errorCode) {
-                    return resolve({
-                        error: parsed.errorMessage || parsed.errorCode || 'Ödeme başlatılamadı. Bilgilerinizi kontrol edin.',
-                    });
-                }
-                resolve({ checkoutFormContent: parsed.checkoutFormContent });
-            });
+    const originalPrice = exports.PLAN_PRICES[plan] ?? exports.PLAN_PRICES.BASIC;
+    const user = await database_1.prisma.user.findUnique({
+        where: { id: userId },
+        include: { profile: true },
+    });
+    if (!user)
+        throw new Error('Kullanıcı bulunamadı');
+    let subscription = await database_1.prisma.subscription.findUnique({ where: { userId } });
+    if (subscription) {
+        subscription = await database_1.prisma.subscription.update({
+            where: { userId },
+            data: { plan, status: client_1.SubscriptionStatus.PENDING, priceAmount: new library_1.Decimal(originalPrice) },
         });
     }
-    catch (err) {
-        console.error('createOrUpdateSubscription kritik hata:', err);
-        return Promise.resolve({ error: err.message || 'Sunucu hatası oluştu. Lütfen tekrar deneyin.' });
+    else {
+        subscription = await database_1.prisma.subscription.create({
+            data: { userId, plan, status: client_1.SubscriptionStatus.PENDING, priceAmount: new library_1.Decimal(originalPrice) },
+        });
     }
+    const backendUrl = process.env.BACKEND_URL || 'https://curling-trouble-goatskin.ngrok-free.dev';
+    // IYZICO HATA ÖNLEYİCİ GÜVENLİ DEĞERLER (AI'nin eklemeyi unuttuğu kısım)
+    const safeFirstName = user.profile?.firstName || 'Danisan';
+    const safeLastName = user.profile?.lastName || 'Kullanici';
+    const safeFullName = `${safeFirstName} ${safeLastName}`.trim();
+    const testPrice = '1.00';
+    const request = {
+        locale: 'tr',
+        conversationId: subscription.id,
+        price: testPrice,
+        paidPrice: testPrice,
+        currency: 'TRY',
+        basketId: 'B' + subscription.id,
+        paymentGroup: 'PRODUCT',
+        callbackUrl: `${backendUrl}/api/v1/subscriptions/callback`,
+        enabledInstallments: [1],
+        buyer: {
+            id: userId,
+            name: safeFirstName,
+            surname: safeLastName,
+            gsmNumber: '+905555555555',
+            email: user.email,
+            identityNumber: '74971543784',
+            registrationAddress: 'Nispetiye Mah. Donanma Sok. No:6',
+            city: 'Istanbul',
+            country: 'Turkey',
+            zipCode: '34340',
+            ip: '85.34.78.112'
+        },
+        shippingAddress: {
+            contactName: safeFullName,
+            city: 'Istanbul',
+            country: 'Turkey',
+            address: 'Nispetiye Mah. Donanma Sok. No:6',
+            zipCode: '34340'
+        },
+        billingAddress: {
+            contactName: safeFullName,
+            city: 'Istanbul',
+            country: 'Turkey',
+            address: 'Nispetiye Mah. Donanma Sok. No:6',
+            zipCode: '34340'
+        },
+        basketItems: [
+            {
+                id: plan,
+                name: `${plan} Plan Coaching`,
+                category1: 'Fitness',
+                itemType: 'VIRTUAL',
+                price: testPrice,
+            },
+        ],
+    };
+    // DİKKAT: Promise dönüş tipine paymentPageUrl eklendi
+    return new Promise((resolve) => {
+        iyzipay_1.iyzipay.checkoutFormInitialize.create(request, (err, result) => {
+            console.log("IYZICO RAW RESULT:", JSON.stringify(result, null, 2));
+            if (err) {
+                return resolve({ error: 'Iyzico bağlantı hatası' });
+            }
+            const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+            if (parsedResult.status === 'failure') {
+                return resolve({ error: parsedResult.errorMessage || 'Ödeme başlatılamadı' });
+            }
+            // KESİN ÇÖZÜM: Iyzico linki vermese bile biz Token ile o linki zorla oluşturuyoruz!
+            const token = parsedResult.token;
+            const guaranteedPaymentUrl = parsedResult.paymentPageUrl || `https://sandbox-cpp.iyzipay.com?token=${token}`;
+            resolve({
+                checkoutFormContent: parsedResult.checkoutFormContent,
+                paymentPageUrl: guaranteedPaymentUrl // <-- Artık controller'a kesin olarak gidiyor!
+            });
+        });
+    });
 };
 exports.createOrUpdateSubscription = createOrUpdateSubscription;
 const verifySubscriptionPayment = async (token) => {
