@@ -8,6 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
+const PLANS = [
+  { id: 'BASIC',    name: 'Başlangıç',   price: '1.499', featured: false },
+  { id: 'PREMIUM',  name: 'Profesyonel', price: '2.999', featured: true  },
+  { id: 'VIP',      name: 'VIP',         price: '4.999', featured: false },
+];
+
 const PLAN_LABELS: Record<string, { name: string; subtitle: string; price: string }> = {
   BASIC:    { name: 'Başlangıç',   subtitle: 'Temel dönüşüm paketi',     price: '1.499' },
   PREMIUM:  { name: 'Profesyonel', subtitle: 'En çok tercih edilen plan', price: '2.999' },
@@ -69,6 +75,21 @@ function CheckoutContent() {
     initCheckout();
   }, [authLoading, user, planParam, router]);
 
+  useEffect(() => {
+    if (formContent) {
+      if (typeof window !== 'undefined') {
+        (window as any).iyziInit = undefined;
+      }
+
+      const container = document.getElementById('iyzipay-checkout-form');
+      if (container) {
+        container.innerHTML = '';
+        const fragment = document.createRange().createContextualFragment(formContent);
+        container.appendChild(fragment);
+      }
+    }
+  }, [formContent]);
+
   const pageVariants = {
     hidden:  { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.6 } },
@@ -98,6 +119,69 @@ function CheckoutContent() {
           <div className="h-px flex-1 bg-gradient-to-r from-gold/10 via-gold/30 to-gold/10" />
         </div>
 
+        {/* ── Plan selector tabs ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-2xl border border-gold/20 bg-charcoal/60 p-1.5"
+        >
+          <div className="absolute inset-0 rounded-2xl bg-gold/[0.03] pointer-events-none" />
+          <div className="relative flex gap-1">
+            {PLANS.map((p) => {
+              const isActive = planParam === p.id;
+              const label = PLAN_LABELS[p.id];
+
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (loading || isActive) return;
+                    router.push(`/dashboard/checkout?plan=${p.id}`, { scroll: false });
+                  }}
+                  className={`
+                    flex-1 flex flex-col items-center gap-1 py-3 px-4 rounded-xl transition-all duration-300 relative
+                    ${isActive
+                      ? 'bg-gold/15 border border-gold/30 shadow-[0_0_20px_rgba(201,168,76,0.15)]'
+                      : 'hover:bg-white/5 border border-transparent'
+                    }
+                  `}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activePlan"
+                      className="absolute inset-0 rounded-xl bg-gold/10"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <div className="relative flex flex-col items-center gap-1">
+                    <span className={`
+                      font-display text-sm font-bold tracking-wide transition-colors duration-300
+                      ${isActive ? 'text-gold' : 'text-ash/50'}
+                    `}>
+                      {p.name}
+                    </span>
+                    <span className={`
+                      text-xs transition-colors duration-300
+                      ${isActive ? 'text-gold/80' : 'text-ash-500'}
+                    `}>
+                      ₺{label.price}/ay
+                    </span>
+                  </div>
+                  {p.featured && (
+                    <span className={`
+                      absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] tracking-widest uppercase font-bold px-2 py-0.5 rounded-full
+                      ${isActive ? 'bg-gold text-charcoal' : 'bg-gold/20 text-gold/60'}
+                    `}>
+                      Popüler
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
         {/* ── Plan info card ── */}
         <div className="relative rounded-3xl border border-gold/20 bg-charcoal/60 backdrop-blur-xl p-8 overflow-hidden">
           <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-gold/[0.05] blur-3xl pointer-events-none" />
@@ -114,12 +198,12 @@ function CheckoutContent() {
               <h1 className="font-display text-4xl font-bold text-white">
                 {plan.name}
               </h1>
-              <p className="text-ash/50 text-sm mt-1">{plan.subtitle}</p>
+              <div className="text-ash/50 text-sm mt-1">{plan.subtitle}</div>
             </div>
 
             <div className="text-right shrink-0">
-              <p className="text-4xl font-display font-bold text-white">₺{plan.price}</p>
-              <p className="text-ash/50 text-xs">/ aylık</p>
+              <div className="text-4xl font-display font-bold text-white">₺{plan.price}</div>
+              <div className="text-ash/50 text-xs">/ aylık</div>
             </div>
           </div>
         </div>
@@ -142,9 +226,9 @@ function CheckoutContent() {
             </div>
             <div className="space-y-2">
               <h2 className="font-display text-2xl text-white">Lütfen Bekleyin</h2>
-              <p className="text-ash/50 text-sm">
+              <div className="text-ash/50 text-sm">
                 Ödeme formu hazırlanıyor, Iyzico güvencesiyle güvenli ödeme ekranına yönlendirileceksiniz.
-              </p>
+              </div>
             </div>
             <div className="flex items-center justify-center gap-3 text-xs text-ash/40">
               <ShieldCheck size={14} className="text-gold" />
@@ -173,6 +257,7 @@ function CheckoutContent() {
         {/* ── Iyzico checkout form ── */}
         {formContent && !loading && (
           <motion.div
+            key={planParam}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
@@ -185,11 +270,7 @@ function CheckoutContent() {
               </span>
             </div>
             <div className="w-full">
-              <div
-                id="iyzipay-checkout-form"
-                className="w-full responsive"
-                dangerouslySetInnerHTML={{ __html: formContent }}
-              />
+              <div id="iyzipay-checkout-form" className="w-full min-h-[600px]" />
             </div>
           </motion.div>
         )}

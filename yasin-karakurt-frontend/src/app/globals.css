@@ -92,17 +92,17 @@
 }
 
 /* ── Iyzico Form Styles ────────────────────── */
-.iyzipay-checkout-form,
 #iyzipay-checkout-form,
-.responsive {
-  width: 100%;
-  min-height: 400px;
-}
-
-#iyzipay-checkout-form iframe,
-#iyzipay-checkout-form form {
+#iyzipay-checkout-form iframe {
   width: 100% !important;
   min-width: 100% !important;
+  min-height: 600px !important;
+}
+
+.iyzipay-checkout-form,
+.responsive {
+  width: 100%;
+  min-height: 600px;
 }
 
 /* ── Print Styles ──────────────────────────── */

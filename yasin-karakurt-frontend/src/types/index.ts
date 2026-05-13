@@ -1,10 +1,19 @@
 export type Role = 'CLIENT' | 'TRAINER' | 'ADMIN';
 
+export interface Subscription {
+  id: string;
+  plan: 'BASIC' | 'PREMIUM' | 'VIP';
+  status: 'PENDING' | 'ACTIVE' | 'CANCELLED' | 'EXPIRED';
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface User {
   id: string;
   email: string;
   role: Role;
   profile: Profile | null;
+  subscription?: Subscription | null;
 }
 
 export interface Profile {
@@ -59,12 +68,4 @@ export interface TrainerCheckIn extends CheckIn {
     email: string;
     profile: { firstName: string; lastName: string; avatarUrl?: string } | null;
   };
-}
-
-export interface Subscription {
-  id: string;
-  plan: 'BASIC' | 'PREMIUM' | 'VIP';
-  status: 'PENDING' | 'ACTIVE' | 'CANCELLED' | 'EXPIRED';
-  startDate?: string;
-  endDate?: string;
 }

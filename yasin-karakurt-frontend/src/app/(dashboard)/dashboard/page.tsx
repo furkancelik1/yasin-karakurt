@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ClipboardList,
@@ -13,8 +13,10 @@ import {
   Zap,
   Flame,
   TrendingUp,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import api from '@/lib/api';
@@ -313,10 +315,37 @@ function TrainerDashboard() {
   );
 }
 
+function PaymentToast() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
+
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    if (!payment) return;
+
+    if (payment === 'success') {
+      toast.success('Aboneliğiniz başarıyla aktif edildi! Gelişim yolculuğunuz başlıyor.');
+      refreshUser?.();
+    } else if (payment === 'failed') {
+      const reason = searchParams.get('reason') || 'Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+      toast.error(reason);
+    }
+
+    router.replace('/dashboard');
+  }, [searchParams, router, refreshUser]);
+
+  return null;
+}
+
 // ── Client Dashboard ──────────────────────────────────────────────────────────
 function ClientDashboard({ name }: { name: string }) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const hasActiveSubscription = user?.subscription?.status === 'ACTIVE';
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -401,6 +430,40 @@ function ClientDashboard({ name }: { name: string }) {
         <p className="text-ash/50 mt-2 font-light italic">Programındaki gelişimlerin burada.</p>
       </header>
 
+      {!hasActiveSubscription && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl border border-gold/20 bg-gold/10 p-8"
+        >
+          <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-gold/[0.08] blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-gold/[0.05] blur-3xl pointer-events-none" />
+
+          <div className="relative flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gold/10 border border-gold/20 shrink-0">
+              <Sparkles size={24} className="text-gold" />
+            </div>
+
+            <div className="flex-1 space-y-2">
+              <h2 className="font-display text-2xl text-white font-bold">
+                Gelişim Yolculuğuna Başla
+              </h2>
+              <p className="text-ash/60 text-sm leading-relaxed">
+                Sana özel hazırlanan antrenman ve beslenme programlarını görüntülemek için aktif bir üyeliğe sahip olman gerekiyor.
+              </p>
+            </div>
+
+            <button
+              onClick={() => router.push('/dashboard/checkout?plan=PREMIUM')}
+              className="shrink-0 px-6 py-3 rounded-xl bg-gold text-charcoal font-display font-bold text-sm uppercase tracking-wider hover:bg-gold/90 transition-colors"
+            >
+              Paketleri İncele
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Haftalık İlerleme */}
         <div className="bg-charcoal/60 border border-white/10 rounded-2xl p-6 space-y-3">
@@ -456,10 +519,17 @@ export default function DashboardPage() {
     );
   }
 
-  if (user?.role === 'TRAINER' || user?.role === 'ADMIN') {
-    return <TrainerDashboard />;
-  }
+  return (
+    <>
+      <Suspense fallback={null}>
+        <PaymentToast />
+      </Suspense>
 
-  const clientName = user?.profile?.firstName ?? 'Danışan';
-  return <ClientDashboard name={clientName} />;
+      {user?.role === 'TRAINER' || user?.role === 'ADMIN' ? (
+        <TrainerDashboard />
+      ) : (
+        <ClientDashboard name={user?.profile?.firstName ?? 'Danışan'} />
+      )}
+    </>
+  );
 }

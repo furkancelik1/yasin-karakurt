@@ -54,12 +54,13 @@ const initiate = async (req, res, next) => {
         }
         const data = await subService.createOrUpdateSubscription(req.user.sub, plan);
         if (data.error) {
-            res.status(502).json({ success: false, message: data.error });
+            res.status(200).json({ success: false, message: data.error });
             return;
         }
+        const formContent = data.checkoutFormContent;
         res.status(201).json({
             success: true,
-            data: { checkoutFormContent: data.checkoutFormContent },
+            data: { checkoutFormContent: formContent },
         });
     }
     catch (err) {

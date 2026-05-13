@@ -21,6 +21,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -82,6 +83,17 @@ export const useAuthStore = create<AuthState>()(
           } catch { /* localStorage unavailable */ }
         }
         set({ user: null, accessToken: null, refreshToken: null });
+      },
+
+      refreshUser: async () => {
+        try {
+          const res = await api.get('/auth/me');
+          if (res.data.success) {
+            set({ user: res.data.data });
+          }
+        } catch {
+          /* ignore */
+        }
       },
     }),
     { name: 'yk-auth', partialize: (s) => ({ user: s.user }) }

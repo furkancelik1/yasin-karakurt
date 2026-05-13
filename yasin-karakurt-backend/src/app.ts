@@ -9,6 +9,7 @@ import { errorHandler, notFound } from './middleware/error.middleware';
 import path from 'path';
 
 const app = express();
+app.set('trust proxy', 1); // ngrok gibi proxy'lerin IP adreslerini doğru tanıması için şart
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: env.ALLOWED_ORIGINS, credentials: true }));

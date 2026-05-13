@@ -24,13 +24,14 @@ export const initiate = async (req: AuthRequest, res: Response, next: NextFuncti
     const data = await subService.createOrUpdateSubscription(req.user!.sub, plan);
 
     if (data.error) {
-      res.status(502).json({ success: false, message: data.error });
+      res.status(200).json({ success: false, message: data.error });
       return;
     }
 
+    const formContent = (data as { checkoutFormContent?: string }).checkoutFormContent;
     res.status(201).json({
       success: true,
-      data: { checkoutFormContent: data.checkoutFormContent },
+      data: { checkoutFormContent: formContent },
     });
   } catch (err) {
     next(err);
