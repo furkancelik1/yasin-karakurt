@@ -15,20 +15,15 @@ export const getMy = async (req: AuthRequest, res: Response, next: NextFunction)
 export const initiate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const plan = req.body.plan as SubscriptionPlan | undefined;
-
     if (!plan || !['BASIC', 'PREMIUM', 'VIP'].includes(plan)) {
       res.status(400).json({ success: false, message: 'Geçerli bir plan seçin: BASIC, PREMIUM, VIP' });
       return;
     }
-
     const data = await subService.createOrUpdateSubscription(req.user!.sub, plan);
-
     if (data.error) {
       res.status(200).json({ success: false, message: data.error });
       return;
     }
-
-    // DİKKAT: paymentPageUrl artık frontend'e iletiliyor
     res.status(201).json({
       success: true,
       data: { 
@@ -44,26 +39,20 @@ export const initiate = async (req: AuthRequest, res: Response, next: NextFuncti
 export const paymentCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token } = req.body;
-
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     if (!token) {
-      const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=no_token`;
-      res.redirect(302, failUrl);
+      res.redirect(302, `${frontendUrl}/dashboard?payment=failed&reason=no_token`);
       return;
     }
-
     const result = await subService.verifySubscriptionPayment(token);
-
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const success = result.status === 'success' || result.status === 'SUCCESS';
-
     const redirectUrl = success
       ? `${frontendUrl}/dashboard?payment=success`
       : `${frontendUrl}/dashboard?payment=failed&reason=${encodeURIComponent(result.error || 'payment_failed')}`;
-
     res.redirect(302, redirectUrl);
   } catch (err) {
-    const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=callback_error`;
-    res.redirect(302, failUrl);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(302, `${frontendUrl}/dashboard?payment=failed&reason=callback_error`);
   }
 };
 
