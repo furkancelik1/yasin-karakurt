@@ -28,10 +28,11 @@ export const initiate = async (req: AuthRequest, res: Response, next: NextFuncti
       return;
     }
 
-    const formContent = (data as { checkoutFormContent?: string }).checkoutFormContent;
+    const formContent = (data as { checkoutFormContent?: string; paymentPageUrl?: string }).checkoutFormContent;
+    const paymentPageUrl = (data as { checkoutFormContent?: string; paymentPageUrl?: string }).paymentPageUrl;
     res.status(201).json({
       success: true,
-      data: { checkoutFormContent: formContent },
+      data: { checkoutFormContent: formContent, paymentPageUrl },
     });
   } catch (err) {
     next(err);
