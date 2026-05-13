@@ -13,7 +13,7 @@ const routes_1 = __importDefault(require("./routes")); // <--- Tüm rotalar bura
 const error_middleware_1 = require("./middleware/error.middleware");
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
-app.use((0, helmet_1.default)());
+app.use((0, helmet_1.default)({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use((0, cors_1.default)({ origin: env_1.env.ALLOWED_ORIGINS, credentials: true }));
 app.use((0, morgan_1.default)(env_1.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(express_1.default.json({ limit: '10mb' }));

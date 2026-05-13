@@ -8,13 +8,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('yk_access')?.value;
 
-  /* Giriş yapmış kullanıcı auth sayfasına girmeye çalışıyor */
-  if (token && AUTH_PAGES.includes(pathname)) {
+  if (token && AUTH_PAGES.some(p => pathname === p || pathname.startsWith(p + '/'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  /* Giriş yapmamış kullanıcı korumalı sayfaya erişiyor */
-  const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
+  const isProtected = PROTECTED_PATHS.some(p => pathname.startsWith(p));
   if (!token && isProtected) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', pathname);

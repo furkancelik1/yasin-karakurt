@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, ClipboardList, Dumbbell, Settings, BarChart, LogOut, Menu, X } from "lucide-react";
+import { Users, ClipboardList, Dumbbell, Settings, BarChart, LogOut, Menu, X, Utensils } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Sidebar = () => {
@@ -19,11 +19,11 @@ export const Sidebar = () => {
     { name: "Check-inler", href: "/checkins", icon: ClipboardList },
   ];
 
-  const clientLinks = [
-    { name: "Genel Bakış", href: "/dashboard", icon: BarChart },
-    { name: "Gelişim Takibi", href: "/dashboard/gelisim", icon: ClipboardList },
-    { name: "Antrenmanım", href: "/dashboard/program", icon: Dumbbell },
-    { name: "Beslenme", href: "/dashboard/beslenme", icon: ClipboardList },
+const clientLinks = [
+    { name: 'Genel Bakış', href: '/dashboard', icon: BarChart },
+    { name: 'Gelişim Takibi', href: '/dashboard/gelisim', icon: ClipboardList },
+    { name: 'Antrenmanım', href: '/dashboard/program', icon: Dumbbell },
+    { name: 'Beslenme', href: '/dashboard/beslenme', icon: Utensils },
   ];
 
   const links = isTrainerOrAdmin ? trainerLinks : clientLinks;

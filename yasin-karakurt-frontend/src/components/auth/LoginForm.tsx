@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,8 +29,12 @@ type FormValues = z.infer<typeof schema>;
 /* ── Bileşen ────────────────────────────────────── */
 export function LoginForm() {
   const router      = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
   const [showPw, setShowPw]  = useState(false);
+
+  const redirect = searchParams.get('redirect');
+  const defaultDestination = redirect || '/dashboard';
 
   const form = useForm<FormValues>({
     resolver:      zodResolver(schema),
@@ -41,11 +45,18 @@ export function LoginForm() {
     try {
       await login(values.email, values.password);
       toast.success('Hoş geldin! Yönlendiriliyorsun...');
-      router.push('/dashboard');
+
+      const plan = searchParams.get('plan');
+      if (plan) {
+        router.push(`/dashboard/checkout?plan=${plan.toUpperCase()}`);
+      } else if (redirect) {
+        router.push(redirect);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const msg = err.response?.data?.message ?? 'Giriş başarısız';
-        /* Kimlik bilgisi hatası → şifre alanına inline hata da ekle */
         if (err.response?.status === 401) {
           form.setError('password', { message: msg });
         } else {

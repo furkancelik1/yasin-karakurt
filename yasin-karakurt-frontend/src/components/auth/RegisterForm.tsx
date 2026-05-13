@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -68,10 +68,15 @@ function PasswordStrength({ value }: { value: string }) {
 
 /* ── Bileşen ────────────────────────────────────── */
 export function RegisterForm() {
-  const router   = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const { register: registerUser, isLoading } = useAuth();
   const [showPw,   setShowPw]   = useState(false);
   const [showCPw,  setShowCPw]  = useState(false);
+
+  const redirect = searchParams.get('redirect');
+  const plan = searchParams.get('plan');
+  const defaultDestination = redirect || '/dashboard';
 
   const form = useForm<FormValues>({
     resolver:      zodResolver(schema),
@@ -89,7 +94,15 @@ export function RegisterForm() {
         password:  values.password,
       });
       toast.success('Hesabın oluşturuldu! Hoş geldin 🎉');
-      router.push('/dashboard');
+
+      const plan = searchParams.get('plan');
+      if (plan) {
+        router.push(`/dashboard/checkout?plan=${plan.toUpperCase()}`);
+      } else if (redirect) {
+        router.push(redirect);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const msg    = err.response?.data?.message ?? 'Kayıt başarısız';

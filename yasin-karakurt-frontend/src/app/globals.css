@@ -91,13 +91,27 @@
   }
 }
 
+/* ── Iyzico Form Styles ────────────────────── */
+.iyzipay-checkout-form,
+#iyzipay-checkout-form,
+.responsive {
+  width: 100%;
+  min-height: 400px;
+}
+
+#iyzipay-checkout-form iframe,
+#iyzipay-checkout-form form {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
 /* ── Print Styles ──────────────────────────── */
 @media print {
   @page {
     margin: 0;
     size: A4;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
@@ -106,8 +120,7 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  
-  /* Hide navigation and interactive elements */
+
   nav,
   aside,
   .sidebar,
@@ -116,21 +129,18 @@
   .hidden-print {
     display: none !important;
   }
-  
-  /* Show print-only content */
+
   .print-only,
-  .print\\:block {
+  .print\:block {
     display: block !important;
   }
-  
-  /* Clean page layout */
+
   .print-container {
     padding: 20mm;
     background: white;
     color: black;
   }
-  
-  /* Remove URL from print */
+
   a[href]::after {
     content: none !important;
   }

@@ -26,11 +26,11 @@ interface AuthState {
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+  document.cookie = `${name}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax; Secure`;
 }
 
 function clearCookie(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0`;
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
 }
 
 export const useAuthStore = create<AuthState>()(

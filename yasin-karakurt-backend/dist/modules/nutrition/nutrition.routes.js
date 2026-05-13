@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const nutrition_controller_1 = require("./nutrition.controller");
+const auth_middleware_1 = require("../../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.post('/plan', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), nutrition_controller_1.createNutritionPlan);
+router.get('/plan/active/:userId', auth_middleware_1.authenticate, nutrition_controller_1.getActivePlan);
+router.get('/plan/user/:userId', auth_middleware_1.authenticate, nutrition_controller_1.getNutritionPlan);
+router.patch('/plan/:id', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), nutrition_controller_1.updateNutritionPlan);
+router.delete('/plan/:id', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), nutrition_controller_1.deleteNutritionPlan);
+router.patch('/meal/:mealId/toggle', auth_middleware_1.authenticate, nutrition_controller_1.toggleMealComplete);
+exports.default = router;

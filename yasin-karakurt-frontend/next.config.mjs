@@ -8,7 +8,16 @@ const nextConfig = {
         port: '4000',
         pathname: '/uploads/**',
       },
-      // Eğer ileride Supabase Storage kullanırsan buraya onun domainini de ekleyeceğiz.
+      {
+        protocol: 'https',
+        hostname: 'curling-trouble-goatskin.ngrok-free.dev', // <--- YENİ LİNKİN
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.ngrok-free.dev',
+        pathname: '/uploads/**',
+      }
     ],
   },
 };

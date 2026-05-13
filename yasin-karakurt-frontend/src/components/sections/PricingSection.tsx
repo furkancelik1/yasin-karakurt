@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 const PLANS = [
   {
@@ -81,6 +82,7 @@ const PLANS = [
 export function PricingSection() {
   const ref    = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-10% 0px' });
+  const { user } = useAuth();
 
   return (
     <section
@@ -119,7 +121,10 @@ export function PricingSection() {
 
         {/* ── Kart grid ── */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
-          {PLANS.map((plan, i) => (
+          {PLANS.map((plan, i) => {
+            const planHref = `/register?plan=${plan.id}`;
+
+            return (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 48 }}
@@ -197,7 +202,7 @@ export function PricingSection() {
 
                   {/* CTA butonu — en alta itilir */}
                   <div className="mt-auto pt-2">
-                    <Link href={`/register?plan=${plan.id}`} className="block w-full">
+                    <Link href={planHref} className="block w-full">
                       <Button
                         variant={plan.featured ? 'gold' : 'gold-outline'}
                         size="lg"
@@ -213,7 +218,8 @@ export function PricingSection() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
 
         {/* ── Alt not ── */}

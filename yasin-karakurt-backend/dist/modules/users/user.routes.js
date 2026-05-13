@@ -2,8 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const user_controller_1 = require("./user.controller");
+const userProgram_controller_1 = require("../programs/userProgram.controller");
 const auth_middleware_1 = require("../../middleware/auth.middleware");
+const cloudinary_1 = require("../../config/cloudinary");
 const router = (0, express_1.Router)();
+router.get('/daily-summary', auth_middleware_1.authenticate, user_controller_1.getDailySummaryHandler);
 router.get('/clients', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), user_controller_1.getClients);
+router.get('/program', auth_middleware_1.authenticate, userProgram_controller_1.getMyPrograms);
+router.get('/profile', auth_middleware_1.authenticate, user_controller_1.getMyProfile);
+router.patch('/profile', auth_middleware_1.authenticate, user_controller_1.updateMyProfile);
+router.patch('/profile-image', auth_middleware_1.authenticate, cloudinary_1.upload.single('avatar'), user_controller_1.uploadProfileImage);
+router.put('/password', auth_middleware_1.authenticate, user_controller_1.changePassword);
 router.get('/:id', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), user_controller_1.getUserById);
 exports.default = router;

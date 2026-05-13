@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteUserProgram = exports.getUserPrograms = exports.getMyPrograms = exports.assignProgram = void 0;
 const path_1 = __importDefault(require("path"));
 const database_1 = require("../../config/database");
+const notification_service_1 = require("../notifications/notification.service");
 const assignProgram = async (req, res, next) => {
     try {
         const { userId, type, title, content, contentType } = req.body;
@@ -27,6 +28,12 @@ const assignProgram = async (req, res, next) => {
                 fileUrl,
             },
         });
+        await (0, notification_service_1.createNotification)({
+            userId,
+            title: type === 'TRAINING' ? 'Yeni Antrenman Programı' : 'Yeni Beslenme Planı',
+            message: `Size "${title}" programı atandı. Programınızı inceleyebilirsiniz.`,
+            type: 'PROGRAM_ASSIGNED',
+        });
         res.status(201).json({ success: true, data: program });
     }
     catch (error) {
@@ -38,12 +45,29 @@ exports.assignProgram = assignProgram;
 const getMyPrograms = async (req, res, next) => {
     try {
         const userId = req.user.sub;
-        console.log('[getMyPrograms] User ID from JWT:', userId);
-        const programs = await database_1.prisma.userProgram.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-        });
-        console.log('[getMyPrograms] Found programs:', programs.length);
+        const userRole = req.user.role;
+        console.log('[getMyPrograms] User ID:', userId, 'Role:', userRole);
+        let programs;
+        if (userRole === 'ADMIN' || userRole === 'TRAINER') {
+            // Admin/Trainer: Show programs assigned to clients (all programs)
+            programs = await database_1.prisma.userProgram.findMany({
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    user: {
+                        select: { email: true, profile: { select: { firstName: true, lastName: true } } }
+                    }
+                }
+            });
+            console.log('[getMyPrograms] Trainer/Admin - Found all programs:', programs.length);
+        }
+        else {
+            // Client: Show only their own programs
+            programs = await database_1.prisma.userProgram.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+            });
+            console.log('[getMyPrograms] Client - Found programs:', programs.length);
+        }
         res.status(200).json({ success: true, data: programs });
     }
     catch (error) {

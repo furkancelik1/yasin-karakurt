@@ -32,19 +32,14 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const subController = __importStar(require("./subscription.controller"));
+const express_1 = require("express");
+const notificationController = __importStar(require("./notification.controller"));
 const auth_middleware_1 = require("../../middleware/auth.middleware");
-const router = express_1.default.Router();
-const jsonParser = express_1.default.json();
-const urlencodedParser = express_1.default.urlencoded({ extended: true });
-router.post('/callback', urlencodedParser, subController.paymentCallback);
+const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticate);
-router.get('/my', subController.getMy);
-router.post('/initialize', jsonParser, subController.initiate);
-router.post('/cancel', jsonParser, subController.cancel);
+router.get('/', notificationController.getMyNotifications);
+router.get('/unread-count', notificationController.getUnreadCount);
+router.patch('/:id/read', notificationController.markAsRead);
+router.patch('/read-all', notificationController.markAllAsRead);
 exports.default = router;

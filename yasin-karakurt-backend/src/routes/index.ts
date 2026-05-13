@@ -7,6 +7,10 @@ import notificationRoutes from '../modules/notifications/notification.routes';
 import nutritionRoutes from '../modules/nutrition/nutrition.routes';
 import waterRoutes from '../modules/water/water.routes';
 import adminRoutes from '../modules/admin/admin.routes';
+
+// YENİ EKLENEN SATIR: Abonelik rotalarını içe aktar
+import subscriptionRoutes from '../modules/subscriptions/subscription.routes';
+
 import { getDashboardStats } from '../modules/dashboard/dashboard.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -20,6 +24,10 @@ router.use('/notifications', notificationRoutes);
 router.use('/nutrition', nutritionRoutes);
 router.use('/water', waterRoutes);
 router.use('/admin', adminRoutes);
+
+// YENİ EKLENEN SATIR: Gelen istekleri abonelik rotasına yönlendir
+router.use('/subscriptions', subscriptionRoutes);
+
 router.get('/dashboard/stats', authenticate, getDashboardStats);
 
 export default router;

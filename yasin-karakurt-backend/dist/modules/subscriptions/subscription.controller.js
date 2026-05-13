@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cancel = exports.initiate = exports.getMy = void 0;
+exports.cancel = exports.paymentCallback = exports.initiate = exports.getMy = void 0;
 const subService = __importStar(require("./subscription.service"));
 const getMy = async (req, res, next) => {
     try {
@@ -47,15 +47,48 @@ const getMy = async (req, res, next) => {
 exports.getMy = getMy;
 const initiate = async (req, res, next) => {
     try {
-        const { plan } = req.body;
+        const plan = req.body.plan;
+        if (!plan || !['BASIC', 'PREMIUM', 'VIP'].includes(plan)) {
+            res.status(400).json({ success: false, message: 'Geçerli bir plan seçin: BASIC, PREMIUM, VIP' });
+            return;
+        }
         const data = await subService.createOrUpdateSubscription(req.user.sub, plan);
-        res.status(201).json({ success: true, data });
+        if (data.error) {
+            res.status(502).json({ success: false, message: data.error });
+            return;
+        }
+        res.status(201).json({
+            success: true,
+            data: { checkoutFormContent: data.checkoutFormContent },
+        });
     }
     catch (err) {
         next(err);
     }
 };
 exports.initiate = initiate;
+const paymentCallback = async (req, res, next) => {
+    try {
+        const { token } = req.body;
+        if (!token) {
+            const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=no_token`;
+            res.redirect(302, failUrl);
+            return;
+        }
+        const result = await subService.verifySubscriptionPayment(token);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const success = result.status === 'success' || result.status === 'SUCCESS';
+        const redirectUrl = success
+            ? `${frontendUrl}/dashboard?payment=success`
+            : `${frontendUrl}/dashboard?payment=failed&reason=${encodeURIComponent(result.error || 'payment_failed')}`;
+        res.redirect(302, redirectUrl);
+    }
+    catch (err) {
+        const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=callback_error`;
+        res.redirect(302, failUrl);
+    }
+};
+exports.paymentCallback = paymentCallback;
 const cancel = async (req, res, next) => {
     try {
         const data = await subService.cancelSubscription(req.user.sub);
