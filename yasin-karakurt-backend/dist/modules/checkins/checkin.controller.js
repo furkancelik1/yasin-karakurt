@@ -37,11 +37,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCheckInSummary = exports.getClientStats = exports.getCheckInStats = exports.getCheckInsByUserId = exports.reviewCheckin = exports.updateCheckinStatus = exports.getCheckinById = exports.getAllForTrainer = exports.getAllCheckins = exports.createCheckin = void 0;
-const path_1 = __importDefault(require("path"));
 const error_middleware_1 = require("../../middleware/error.middleware");
 const database_1 = require("../../config/database");
 const CheckInService = __importStar(require("./checkin.service"));
 const notification_service_1 = require("../notifications/notification.service");
+const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
+const stream_1 = require("stream");
+// Helper function to upload file to Cloudinary
+const uploadToCloudinary = (fileBuffer, filename) => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary_1.default.uploader.upload_stream({
+            folder: 'yasin-karakurt/checkins',
+            filename: filename,
+            resource_type: 'image',
+        }, (error, result) => {
+            if (error) {
+                reject(error);
+            }
+            else {
+                resolve({ url: result?.secure_url || '' });
+            }
+        });
+        stream_1.Readable.from(fileBuffer).pipe(uploadStream);
+    });
+};
 const createCheckin = async (req, res) => {
     try {
         const userPayload = req.user;
@@ -51,7 +70,8 @@ const createCheckin = async (req, res) => {
             return;
         }
         const { weight, bodyFat, sleepHours, energyLevel, stressLevel, hungerLevel, notes, programId, weekNumber, } = req.body;
-        const files = req.files;
+        // Handle file uploads using multer (already processed by upload.array middleware)
+        const files = req.files || [];
         const hasMetrics = weight || bodyFat || sleepHours || energyLevel || stressLevel || hungerLevel || notes;
         const hasPhotos = files && files.length > 0;
         if (!hasMetrics && !hasPhotos) {
@@ -71,17 +91,26 @@ const createCheckin = async (req, res) => {
         }
         const photoUrls = [];
         if (files && files.length > 0) {
-            files.forEach((file) => {
-                const fullPath = file.path;
-                if (!fullPath)
-                    return;
-                const url = '/uploads/checkins/' + path_1.default.basename(fullPath);
-                const angle = file.originalname.toLowerCase().includes('front') ? 'front'
-                    : file.originalname.toLowerCase().includes('side') ? 'side'
-                        : file.originalname.toLowerCase().includes('back') ? 'back'
-                            : 'other';
-                photoUrls.push({ url, angle });
+            // Upload each file to Cloudinary
+            const uploadPromises = files.map(async (file) => {
+                try {
+                    const result = await uploadToCloudinary(file.buffer, file.originalname);
+                    const angle = file.originalname.toLowerCase().includes('front') ? 'front'
+                        : file.originalname.toLowerCase().includes('side') ? 'side'
+                            : file.originalname.toLowerCase().includes('back') ? 'back'
+                                : 'other';
+                    return { url: result.url, angle };
+                }
+                catch (error) {
+                    console.error('Cloudinary upload error:', error);
+                    // Return a placeholder or throw error - for now we'll skip failed uploads
+                    return null;
+                }
             });
+            const results = await Promise.all(uploadPromises);
+            // Filter out null results (failed uploads)
+            const validResults = results.filter((result) => result !== null);
+            photoUrls.push(...validResults);
         }
         const newCheckin = await database_1.prisma.checkIn.create({
             data: {

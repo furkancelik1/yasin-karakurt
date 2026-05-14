@@ -6,6 +6,9 @@ import { AppError } from '../../middleware/error.middleware';
 import { prisma } from '../../config/database';
 import * as CheckInService from './checkin.service';
 import { createNotification } from '../notifications/notification.service';
+import { upload as multerUpload } from '../../middleware/upload.middleware';
+import cloudinary from '../../config/cloudinary';
+import { Readable } from 'stream';
 
 interface CheckInBody {
   weight?: number;
@@ -18,6 +21,28 @@ interface CheckInBody {
   programId?: string;
   weekNumber?: number;
 }
+
+// Helper function to upload file to Cloudinary
+const uploadToCloudinary = (fileBuffer: Buffer, filename: string): Promise<{ url: string }> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'yasin-karakurt/checkins',
+        filename: filename,
+        resource_type: 'image',
+      },
+      (error: any, result: any) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve({ url: result?.secure_url || '' });
+        }
+      }
+    );
+
+    Readable.from(fileBuffer).pipe(uploadStream);
+  });
+};
 
 export const createCheckin = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -41,7 +66,8 @@ export const createCheckin = async (req: AuthRequest, res: Response): Promise<vo
       weekNumber,
     } = req.body as CheckInBody;
 
-    const files = req.files as Express.Multer.File[];
+    // Handle file uploads using multer (already processed by upload.array middleware)
+    const files = req.files as Express.Multer.File[] || [];
 
     const hasMetrics = weight || bodyFat || sleepHours || energyLevel || stressLevel || hungerLevel || notes;
     const hasPhotos = files && files.length > 0;
@@ -65,18 +91,26 @@ export const createCheckin = async (req: AuthRequest, res: Response): Promise<vo
 
     const photoUrls: { url: string; angle: string }[] = [];
     if (files && files.length > 0) {
-      files.forEach((file: Express.Multer.File) => {
-        const fullPath = file.path;
-        if (!fullPath) return;
-        const url = '/uploads/checkins/' + path.basename(fullPath);
-        
-        const angle = file.originalname.toLowerCase().includes('front') ? 'front'
-          : file.originalname.toLowerCase().includes('side') ? 'side'
-          : file.originalname.toLowerCase().includes('back') ? 'back'
-          : 'other';
-        
-        photoUrls.push({ url, angle });
+      // Upload each file to Cloudinary
+      const uploadPromises = files.map(async (file) => {
+        try {
+          const result = await uploadToCloudinary(file.buffer, file.originalname);
+          const angle = file.originalname.toLowerCase().includes('front') ? 'front'
+            : file.originalname.toLowerCase().includes('side') ? 'side'
+            : file.originalname.toLowerCase().includes('back') ? 'back'
+            : 'other';
+          return { url: result.url, angle };
+        } catch (error) {
+          console.error('Cloudinary upload error:', error);
+          // Return a placeholder or throw error - for now we'll skip failed uploads
+          return null;
+        }
       });
+
+      const results = await Promise.all(uploadPromises);
+      // Filter out null results (failed uploads)
+      const validResults = results.filter((result): result is { url: string; angle: string } => result !== null);
+      photoUrls.push(...validResults);
     }
 
     const newCheckin = await prisma.checkIn.create({
