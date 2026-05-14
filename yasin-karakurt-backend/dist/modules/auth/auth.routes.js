@@ -32,13 +32,28 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const authController = __importStar(require("./auth.controller"));
 const validate_middleware_1 = require("../../middleware/validate.middleware");
 const auth_middleware_1 = require("../../middleware/auth.middleware");
 const router = (0, express_1.Router)();
+// Brute-force saldırılarını engellemek için hız sınırlayıcı
+const authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 dakika
+    max: 5, // Her IP için 15 dakikada maksimum 5 istek
+    standardHeaders: true, // `RateLimit-*` header bilgilerini geri döndürür
+    legacyHeaders: false, // `X-RateLimit-*` header'larını devre dışı bırakır
+    message: {
+        success: false,
+        message: 'Çok fazla deneme yaptınız, lütfen 15 dakika sonra tekrar deneyin.'
+    }
+});
 const registerSchema = zod_1.z.object({
     email: zod_1.z.string().email('Geçerli bir e-posta girin'),
     password: zod_1.z.string().min(8, 'Şifre en az 8 karakter olmalı'),
@@ -49,8 +64,9 @@ const loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
     password: zod_1.z.string().min(1),
 });
-router.post('/register', (0, validate_middleware_1.validate)(registerSchema), authController.register);
-router.post('/login', (0, validate_middleware_1.validate)(loginSchema), authController.login);
+// Kayıt ve giriş rotalarına authLimiter eklendi
+router.post('/register', authLimiter, (0, validate_middleware_1.validate)(registerSchema), authController.register);
+router.post('/login', authLimiter, (0, validate_middleware_1.validate)(loginSchema), authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', auth_middleware_1.authenticate, authController.logout);
 router.get('/me', auth_middleware_1.authenticate, authController.me);

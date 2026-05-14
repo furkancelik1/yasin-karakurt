@@ -22,6 +22,7 @@ const corsOptions: cors.CorsOptions = {
       'http://localhost:3000',
       'http://localhost:4000',
       'https://curling-trouble-goatskin.ngrok-free.dev',
+      process.env.FRONTEND_URL || 'http://localhost:3000',
       ...(env.ALLOWED_ORIGINS as unknown as string[]),
     ];
 
@@ -55,6 +56,16 @@ app.use('/uploads/programs', express.static(path.join(__dirname, '../uploads/pro
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api', limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply auth limiter to auth routes
+app.use('/api/v1/auth', authLimiter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', env: env.NODE_ENV, timestamp: new Date().toISOString() });
