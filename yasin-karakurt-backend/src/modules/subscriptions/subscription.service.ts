@@ -24,17 +24,19 @@ export const createOrUpdateSubscription = async (userId: string, plan: Subscript
   };
 
   const price = priceMap[plan];
+  const conversationId = Math.random().toString(36).substring(7);
 
   const request = {
     locale: 'tr',
-    conversationId: Math.random().toString(36).substring(7),
-    price: price,
+    conversationId,
+    price,
     paidPrice: price,
     currency: 'TRY',
     basketId: `B_${userId}_${Date.now()}`,
-    paymentGroup: 'SUBSCRIPTION',
+    paymentGroup: 'PRODUCT',
     callbackUrl: `${env.BACKEND_URL}/api/v1/subscriptions/callback`,
     enabledInstallments: [1],
+    paymentSource: 'YASIN_KARAKURT_COACHING',
     buyer: {
       id: userId,
       name: user.profile?.firstName || 'Ahmet Furkan',
@@ -42,8 +44,8 @@ export const createOrUpdateSubscription = async (userId: string, plan: Subscript
       gsmNumber: '+905555555555',
       email: user.email,
       identityNumber: '74971543784',
-      lastLoginDate: '2023-10-05 12:43:35',
-      registrationDate: '2023-01-01 10:00:00',
+      lastLoginDate: '2013-10-05 12:43:35',
+      registrationDate: '2013-01-01 10:00:00',
       registrationAddress: 'Nispetiye Mah. Donanma Sok. No:6',
       ip: '85.34.78.112',
       city: 'Istanbul',
@@ -67,10 +69,10 @@ export const createOrUpdateSubscription = async (userId: string, plan: Subscript
     basketItems: [
       {
         id: `PLAN_${plan}`,
-        name: `${plan} Plan Subscription`,
+        name: `${plan} Plan Coaching`,
         category1: 'Coaching',
         itemType: 'VIRTUAL',
-        price: price,
+        price,
       },
     ],
   };
@@ -90,15 +92,21 @@ export const createOrUpdateSubscription = async (userId: string, plan: Subscript
   return new Promise<{ checkoutFormContent?: string; paymentPageUrl?: string; error?: string }>((resolve) => {
     iyzipay.checkoutFormInitialize.create(request, (err: any, result: any) => {
       if (err) return resolve({ error: 'Iyzico sunucusuna bağlanılamadı' });
+
       const res = typeof result === 'string' ? JSON.parse(result) : result;
+
       if (res.status === 'failure') {
         return resolve({ error: res.errorMessage || 'Ödeme başlatılamadı' });
       }
-      const guaranteedUrl = res.paymentPageUrl || `https://sandbox-cpp.iyzipay.com?token=${res.token}&lang=tr`;
-      resolve({
-        checkoutFormContent: res.checkoutFormContent,
-        paymentPageUrl: guaranteedUrl,
-      });
+
+      const paymentPageUrl = res.paymentPageUrl || null;
+      const checkoutFormContent = res.checkoutFormContent || null;
+
+      if (!paymentPageUrl && !checkoutFormContent) {
+        return resolve({ error: 'Geçerli bir ödeme kaynağı bulunamadı' });
+      }
+
+      resolve({ checkoutFormContent, paymentPageUrl });
     });
   });
 };

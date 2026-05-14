@@ -10,6 +10,9 @@ exports.env = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: parseInt(process.env.PORT || '4000', 10),
     DATABASE_URL: process.env.DATABASE_URL || '',
+    // Yeni eklenenler
+    BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:4000',
+    FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
     JWT_SECRET: process.env.JWT_SECRET || 'change_me',
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
     JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'change_me_refresh',

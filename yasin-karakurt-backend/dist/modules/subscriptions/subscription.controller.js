@@ -57,7 +57,6 @@ const initiate = async (req, res, next) => {
             res.status(200).json({ success: false, message: data.error });
             return;
         }
-        // DİKKAT: paymentPageUrl artık frontend'e iletiliyor
         res.status(201).json({
             success: true,
             data: {
@@ -74,13 +73,12 @@ exports.initiate = initiate;
 const paymentCallback = async (req, res, next) => {
     try {
         const { token } = req.body;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         if (!token) {
-            const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=no_token`;
-            res.redirect(302, failUrl);
+            res.redirect(302, `${frontendUrl}/dashboard?payment=failed&reason=no_token`);
             return;
         }
         const result = await subService.verifySubscriptionPayment(token);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const success = result.status === 'success' || result.status === 'SUCCESS';
         const redirectUrl = success
             ? `${frontendUrl}/dashboard?payment=success`
@@ -88,8 +86,8 @@ const paymentCallback = async (req, res, next) => {
         res.redirect(302, redirectUrl);
     }
     catch (err) {
-        const failUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?payment=failed&reason=callback_error`;
-        res.redirect(302, failUrl);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(302, `${frontendUrl}/dashboard?payment=failed&reason=callback_error`);
     }
 };
 exports.paymentCallback = paymentCallback;

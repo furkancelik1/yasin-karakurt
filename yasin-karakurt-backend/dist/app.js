@@ -15,7 +15,36 @@ const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 app.set('trust proxy', 1); // ngrok gibi proxy'lerin IP adreslerini doğru tanıması için şart
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use((0, cors_1.default)({ origin: env_1.env.ALLOWED_ORIGINS, credentials: true }));
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Origin yoksa (Postman, server-to-server, curl) izin ver
+        if (!origin)
+            return callback(null, true);
+        const staticAllowed = [
+            'http://localhost:3000',
+            'http://localhost:4000',
+            'https://curling-trouble-goatskin.ngrok-free.dev',
+            ...env_1.env.ALLOWED_ORIGINS,
+        ];
+        const isAllowed = staticAllowed.includes(origin) ||
+            origin.endsWith('.ngrok-free.dev') ||
+            origin.endsWith('.ngrok.io') ||
+            origin.endsWith('.ngrok-free.app');
+        if (isAllowed)
+            return callback(null, true);
+        return callback(new Error(`CORS: ${origin} izinli değil`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'ngrok-skip-browser-warning',
+        'x-skip-browser-warning',
+    ],
+};
+app.use((0, cors_1.default)(corsOptions));
+app.options('*', (0, cors_1.default)(corsOptions)); // Preflight (OPTIONS) isteklerini açıkça yakala
 app.use((0, morgan_1.default)(env_1.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
