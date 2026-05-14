@@ -10,8 +10,15 @@ const notification_service_1 = require("../notifications/notification.service");
 const assignProgram = async (req, res, next) => {
     try {
         const { userId, type, title, content, contentType } = req.body;
+        const currentUserId = req.user.sub;
+        const currentUserRole = req.user.role;
         if (!userId || !type || !title) {
             res.status(400).json({ success: false, message: 'Eksik bilgi.' });
+            return;
+        }
+        // IDOR koruması: Sadece ADMIN/TRAINER başkalarına program atayabilir
+        if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+            res.status(403).json({ success: false, message: 'Başka bir kullanıcıya program atamak için yetkiniz yok.' });
             return;
         }
         let fileUrl = null;
@@ -46,27 +53,24 @@ const getMyPrograms = async (req, res, next) => {
     try {
         const userId = req.user.sub;
         const userRole = req.user.role;
-        console.log('[getMyPrograms] User ID:', userId, 'Role:', userRole);
         let programs;
         if (userRole === 'ADMIN' || userRole === 'TRAINER') {
-            // Admin/Trainer: Show programs assigned to clients (all programs)
             programs = await database_1.prisma.userProgram.findMany({
                 orderBy: { createdAt: 'desc' },
+                take: 50,
                 include: {
                     user: {
                         select: { email: true, profile: { select: { firstName: true, lastName: true } } }
                     }
                 }
             });
-            console.log('[getMyPrograms] Trainer/Admin - Found all programs:', programs.length);
         }
         else {
-            // Client: Show only their own programs
             programs = await database_1.prisma.userProgram.findMany({
                 where: { userId },
                 orderBy: { createdAt: 'desc' },
+                take: 20,
             });
-            console.log('[getMyPrograms] Client - Found programs:', programs.length);
         }
         res.status(200).json({ success: true, data: programs });
     }
@@ -79,9 +83,17 @@ exports.getMyPrograms = getMyPrograms;
 const getUserPrograms = async (req, res, next) => {
     try {
         const { userId } = req.params;
+        const currentUserId = req.user.sub;
+        const currentUserRole = req.user.role;
+        // IDOR koruması: Client sadece kendi programlarını görebilir
+        if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+            res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
+            return;
+        }
         const programs = await database_1.prisma.userProgram.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
+            take: 20,
         });
         res.status(200).json({ success: true, data: programs });
     }
@@ -94,6 +106,22 @@ exports.getUserPrograms = getUserPrograms;
 const deleteUserProgram = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const currentUserId = req.user.sub;
+        const currentUserRole = req.user.role;
+        // Programın sahibini bul
+        const existingProgram = await database_1.prisma.userProgram.findUnique({
+            where: { id },
+            select: { userId: true },
+        });
+        if (!existingProgram) {
+            res.status(404).json({ success: false, message: 'Program bulunamadı.' });
+            return;
+        }
+        // IDOR koruması: Sadece program sahibi veya ADMIN/TRAINER silebilir
+        if (existingProgram.userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+            res.status(403).json({ success: false, message: 'Bu programı silme yetkiniz yok.' });
+            return;
+        }
         await database_1.prisma.userProgram.delete({
             where: { id },
         });

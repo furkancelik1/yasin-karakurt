@@ -186,29 +186,32 @@ export const getAllForTrainer = async (req: AuthRequest, res: Response): Promise
 export const getCheckinById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
     const checkin = await CheckInService.getCheckInById(id);
 
-    const previousCheckin = await prisma.checkIn.findFirst({
-      where: {
-        userId: checkin.userId,
-        submittedAt: { lt: checkin.submittedAt },
-      },
-      orderBy: { submittedAt: 'desc' },
-      include: { photos: true },
-    });
-
-    const allCheckIns = await prisma.checkIn.findMany({
-      where: { userId: checkin.userId },
-      select: {
-        id: true,
-        weight: true,
-        bodyFat: true,
-        submittedAt: true,
-        photos: true,
-      },
-      orderBy: { submittedAt: 'desc' },
-      take: 10,
-    });
+    // Tek sorguda tüm verileri çek (N+1 önleme)
+    const [previousCheckin, allCheckIns] = await Promise.all([
+      prisma.checkIn.findFirst({
+        where: {
+          userId: checkin.userId,
+          submittedAt: { lt: checkin.submittedAt },
+        },
+        orderBy: { submittedAt: 'desc' },
+        select: { id: true, submittedAt: true, weight: true, photos: true },
+      }),
+      prisma.checkIn.findMany({
+        where: { userId: checkin.userId },
+        select: {
+          id: true,
+          weight: true,
+          bodyFat: true,
+          submittedAt: true,
+          photos: { select: { id: true, url: true, angle: true } },
+        },
+        orderBy: { submittedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
 
     res.status(200).json({ success: true, data: { checkin, previousCheckin, allCheckIns } });
   } catch (error) {

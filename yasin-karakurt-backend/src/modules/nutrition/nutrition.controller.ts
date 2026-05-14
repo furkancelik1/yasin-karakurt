@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../types';
 import { NutritionService } from './nutrition.service';
+import { AppError } from '../../middleware/error.middleware';
+import { prisma } from '../../config/database';
 
 interface NutritionBody {
   userId: string;
@@ -24,9 +26,17 @@ export const createNutritionPlan = async (req: AuthRequest, res: Response): Prom
   try {
     const body = req.body as NutritionBody;
     const userId = body.userId;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!userId) {
       res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece ADMIN/TRAINER başkaları için plan oluşturabilir
+    if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
       return;
     }
 
@@ -62,6 +72,10 @@ export const createNutritionPlan = async (req: AuthRequest, res: Response): Prom
 
     res.status(201).json({ success: true, data: plan });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -69,20 +83,32 @@ export const createNutritionPlan = async (req: AuthRequest, res: Response): Prom
 export const getActivePlan = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!userId || userId === 'me') {
-      if (!req.user?.sub) {
+      if (!currentUserId) {
         res.status(401).json({ success: false, message: 'Yetkisiz erişim.' });
         return;
       }
-      const plan = await NutritionService.getActivePlan(req.user.sub);
+      const plan = await NutritionService.getActivePlan(currentUserId);
       res.status(200).json({ success: true, data: plan });
+      return;
+    }
+
+    // IDOR koruması: Client sadece kendi planını görebilir
+    if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
       return;
     }
 
     const plan = await NutritionService.getActivePlan(userId);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -90,20 +116,32 @@ export const getActivePlan = async (req: AuthRequest, res: Response): Promise<vo
 export const getNutritionPlan = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!userId || userId === 'me') {
-      if (!req.user?.sub) {
+      if (!currentUserId) {
         res.status(401).json({ success: false, message: 'Yetkisiz erişim.' });
         return;
       }
-      const plan = await NutritionService.getActivePlan(req.user.sub);
+      const plan = await NutritionService.getActivePlan(currentUserId);
       res.status(200).json({ success: true, data: plan });
+      return;
+    }
+
+    // IDOR koruması: Client sadece kendi planını görebilir
+    if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
       return;
     }
 
     const plan = await NutritionService.getActivePlan(userId);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -112,9 +150,28 @@ export const updateNutritionPlan = async (req: AuthRequest, res: Response): Prom
   try {
     const { id } = req.params;
     const body = req.body as Record<string, unknown>;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!id) {
       res.status(400).json({ success: false, message: 'Plan ID gerekli.' });
+      return;
+    }
+
+    // Planın sahibini bul
+    const existingPlan = await prisma.nutritionPlan.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingPlan) {
+      res.status(404).json({ success: false, message: 'Plan bulunamadı.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece plan sahibi veya ADMIN/TRAINER güncelleyebilir
+    if (existingPlan.userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu planı güncelleme yetkiniz yok.' });
       return;
     }
 
@@ -129,6 +186,10 @@ export const updateNutritionPlan = async (req: AuthRequest, res: Response): Prom
     const plan = await NutritionService.updatePlan(id, updateData);
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -136,15 +197,38 @@ export const updateNutritionPlan = async (req: AuthRequest, res: Response): Prom
 export const deleteNutritionPlan = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!id) {
       res.status(400).json({ success: false, message: 'Plan ID gerekli.' });
       return;
     }
 
+    // Planın sahibini bul
+    const existingPlan = await prisma.nutritionPlan.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingPlan) {
+      res.status(404).json({ success: false, message: 'Plan bulunamadı.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece plan sahibi veya ADMIN/TRAINER silebilir
+    if (existingPlan.userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu planı silme yetkiniz yok.' });
+      return;
+    }
+
     await NutritionService.deactivatePlan(id);
     res.status(200).json({ success: true, message: 'Plan silindi.' });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };
@@ -152,15 +236,38 @@ export const deleteNutritionPlan = async (req: AuthRequest, res: Response): Prom
 export const toggleMealComplete = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { mealId } = req.params;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!mealId) {
       res.status(400).json({ success: false, message: 'Öğün ID gerekli.' });
       return;
     }
 
+    // Öğünün sahibi olan planı bul
+    const meal = await prisma.meal.findUnique({
+      where: { id: mealId },
+      include: { plan: { select: { userId: true } } },
+    });
+
+    if (!meal) {
+      res.status(404).json({ success: false, message: 'Öğün bulunamadı.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece plan sahibi veya ADMIN/TRAINER değiştirebilir
+    if (meal.plan.userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu öğünü değiştirme yetkiniz yok.' });
+      return;
+    }
+
     const updated = await NutritionService.toggleMealComplete(mealId);
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: 'Sunucu hatası.' });
   }
 };

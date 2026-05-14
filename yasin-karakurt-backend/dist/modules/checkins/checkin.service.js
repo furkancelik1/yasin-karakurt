@@ -40,26 +40,29 @@ const getCheckInById = async (id) => {
     return checkIn;
 };
 exports.getCheckInById = getCheckInById;
-const getMyCheckIns = async (userId) => {
+const getMyCheckIns = async (userId, limit = 20) => {
     return database_1.prisma.checkIn.findMany({
         where: { userId },
         include: { photos: true },
         orderBy: { submittedAt: 'desc' },
+        take: limit,
     });
 };
 exports.getMyCheckIns = getMyCheckIns;
-const getTrainerCheckins = async () => {
+const getTrainerCheckins = async (limit = 50) => {
     return database_1.prisma.checkIn.findMany({
         include: checkinInclude,
         orderBy: { submittedAt: 'desc' },
+        take: limit,
     });
 };
 exports.getTrainerCheckins = getTrainerCheckins;
-const getCheckInsByUserId = async (userId) => {
+const getCheckInsByUserId = async (userId, limit = 20) => {
     return database_1.prisma.checkIn.findMany({
         where: { userId },
-        include: { photos: true, user: { include: { profile: true } } },
+        include: { photos: true },
         orderBy: { submittedAt: 'desc' },
+        take: limit,
     });
 };
 exports.getCheckInsByUserId = getCheckInsByUserId;

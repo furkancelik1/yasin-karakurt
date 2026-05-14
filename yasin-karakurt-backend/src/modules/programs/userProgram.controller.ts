@@ -17,9 +17,17 @@ interface CreateUserProgramBody {
 export const assignProgram = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { userId, type, title, content, contentType } = req.body as CreateUserProgramBody;
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
 
     if (!userId || !type || !title) {
       res.status(400).json({ success: false, message: 'Eksik bilgi.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece ADMIN/TRAINER başkalarına program atayabilir
+    if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Başka bir kullanıcıya program atamak için yetkiniz yok.' });
       return;
     }
 
@@ -57,28 +65,25 @@ export const getMyPrograms = async (req: AuthRequest, res: Response, next: NextF
   try {
     const userId = req.user!.sub;
     const userRole = req.user!.role;
-    console.log('[getMyPrograms] User ID:', userId, 'Role:', userRole);
     
     let programs;
 
     if (userRole === 'ADMIN' || userRole === 'TRAINER') {
-      // Admin/Trainer: Show programs assigned to clients (all programs)
       programs = await prisma.userProgram.findMany({
         orderBy: { createdAt: 'desc' },
+        take: 50,
         include: {
           user: {
             select: { email: true, profile: { select: { firstName: true, lastName: true } } }
           }
         }
       });
-      console.log('[getMyPrograms] Trainer/Admin - Found all programs:', programs.length);
     } else {
-      // Client: Show only their own programs
       programs = await prisma.userProgram.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
+        take: 20,
       });
-      console.log('[getMyPrograms] Client - Found programs:', programs.length);
     }
 
     res.status(200).json({ success: true, data: programs });
@@ -91,10 +96,19 @@ export const getMyPrograms = async (req: AuthRequest, res: Response, next: NextF
 export const getUserPrograms = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { userId } = req.params;
-    
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
+
+    // IDOR koruması: Client sadece kendi programlarını görebilir
+    if (userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu işlem için yetkiniz yok.' });
+      return;
+    }
+
     const programs = await prisma.userProgram.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: 20,
     });
 
     res.status(200).json({ success: true, data: programs });
@@ -107,7 +121,26 @@ export const getUserPrograms = async (req: AuthRequest, res: Response, next: Nex
 export const deleteUserProgram = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    
+    const currentUserId = req.user!.sub;
+    const currentUserRole = req.user!.role as string;
+
+    // Programın sahibini bul
+    const existingProgram = await prisma.userProgram.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingProgram) {
+      res.status(404).json({ success: false, message: 'Program bulunamadı.' });
+      return;
+    }
+
+    // IDOR koruması: Sadece program sahibi veya ADMIN/TRAINER silebilir
+    if (existingProgram.userId !== currentUserId && currentUserRole !== 'ADMIN' && currentUserRole !== 'TRAINER') {
+      res.status(403).json({ success: false, message: 'Bu programı silme yetkiniz yok.' });
+      return;
+    }
+
     await prisma.userProgram.delete({
       where: { id },
     });

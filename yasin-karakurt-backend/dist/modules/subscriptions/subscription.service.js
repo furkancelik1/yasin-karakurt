@@ -12,6 +12,16 @@ exports.PLAN_PRICES = {
     PREMIUM: 2999,
     VIP: 4999,
 };
+// Iyzico Sandbox sabitleri (test ortamı için beyaz listede olan değerler)
+const IYZICO_SANDBOX = {
+    identityNumber: '74971543784', // TC algoritması geçerli sandbox test numarası
+    gsmNumber: '+905555555555', // Standart sandbox GSM
+    ip: '85.34.78.112', // Standart sandbox IP
+    defaultAddress: 'Nispetiye Mah. Donanma Sok. No:6, Istanbul',
+    city: 'Istanbul',
+    country: 'Turkey',
+    zipCode: '34340',
+};
 const getMySubscription = async (userId) => {
     return await database_1.default.subscription.findUnique({
         where: { userId },
@@ -32,6 +42,12 @@ const createOrUpdateSubscription = async (userId, plan) => {
     };
     const price = priceMap[plan];
     const conversationId = Math.random().toString(36).substring(7);
+    // Dinamik kullanıcı verileri (veritabanından çekiliyor)
+    const firstName = user.profile?.firstName || 'Musteri';
+    const lastName = user.profile?.lastName || 'Kullanici';
+    const fullName = `${firstName} ${lastName}`;
+    const email = user.email;
+    const gsmNumber = user.profile?.phone || IYZICO_SANDBOX.gsmNumber;
     const request = {
         locale: 'tr',
         conversationId,
@@ -45,32 +61,32 @@ const createOrUpdateSubscription = async (userId, plan) => {
         paymentSource: 'YASIN_KARAKURT_COACHING',
         buyer: {
             id: userId,
-            name: user.profile?.firstName || 'Ahmet Furkan',
-            surname: user.profile?.lastName || 'Celik',
-            gsmNumber: '+905555555555',
-            email: user.email,
-            identityNumber: '74971543784',
-            lastLoginDate: '2013-10-05 12:43:35',
-            registrationDate: '2013-01-01 10:00:00',
-            registrationAddress: 'Nispetiye Mah. Donanma Sok. No:6',
-            ip: '85.34.78.112',
-            city: 'Istanbul',
-            country: 'Turkey',
-            zipCode: '34340',
+            name: firstName,
+            surname: lastName,
+            gsmNumber,
+            email,
+            identityNumber: IYZICO_SANDBOX.identityNumber,
+            lastLoginDate: new Date().toISOString().split('T')[0],
+            registrationDate: new Date().toISOString().split('T')[0],
+            registrationAddress: IYZICO_SANDBOX.defaultAddress,
+            ip: IYZICO_SANDBOX.ip,
+            city: IYZICO_SANDBOX.city,
+            country: IYZICO_SANDBOX.country,
+            zipCode: IYZICO_SANDBOX.zipCode,
         },
         shippingAddress: {
-            contactName: `${user.profile?.firstName || 'Ahmet Furkan'} ${user.profile?.lastName || 'Celik'}`,
-            city: 'Istanbul',
-            country: 'Turkey',
-            address: 'Nispetiye Mah. Donanma Sok. No:6',
-            zipCode: '34340',
+            contactName: fullName,
+            city: IYZICO_SANDBOX.city,
+            country: IYZICO_SANDBOX.country,
+            address: IYZICO_SANDBOX.defaultAddress,
+            zipCode: IYZICO_SANDBOX.zipCode,
         },
         billingAddress: {
-            contactName: `${user.profile?.firstName || 'Ahmet Furkan'} ${user.profile?.lastName || 'Celik'}`,
-            city: 'Istanbul',
-            country: 'Turkey',
-            address: 'Nispetiye Mah. Donanma Sok. No:6',
-            zipCode: '34340',
+            contactName: fullName,
+            city: IYZICO_SANDBOX.city,
+            country: IYZICO_SANDBOX.country,
+            address: IYZICO_SANDBOX.defaultAddress,
+            zipCode: IYZICO_SANDBOX.zipCode,
         },
         basketItems: [
             {

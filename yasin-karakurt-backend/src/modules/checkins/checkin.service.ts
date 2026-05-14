@@ -51,26 +51,29 @@ export const getCheckInById = async (id: string) => {
   return checkIn;
 };
 
-export const getMyCheckIns = async (userId: string) => {
+export const getMyCheckIns = async (userId: string, limit = 20) => {
   return prisma.checkIn.findMany({
     where: { userId },
     include: { photos: true },
     orderBy: { submittedAt: 'desc' },
+    take: limit,
   });
 };
 
-export const getTrainerCheckins = async () => {
+export const getTrainerCheckins = async (limit = 50) => {
   return prisma.checkIn.findMany({
     include: checkinInclude,
     orderBy: { submittedAt: 'desc' },
+    take: limit,
   });
 };
 
-export const getCheckInsByUserId = async (userId: string) => {
+export const getCheckInsByUserId = async (userId: string, limit = 20) => {
   return prisma.checkIn.findMany({
     where: { userId },
-    include: { photos: true, user: { include: { profile: true } } },
+    include: { photos: true },
     orderBy: { submittedAt: 'desc' },
+    take: limit,
   });
 };
 
