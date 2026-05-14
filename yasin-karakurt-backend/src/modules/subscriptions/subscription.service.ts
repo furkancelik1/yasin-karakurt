@@ -1,7 +1,13 @@
 import { SubscriptionPlan } from '@prisma/client';
 import prisma from '../../config/database';
-import { iyzipay } from '../../config/iyzipay'; // { } eklendi
+import { iyzipay } from '../../config/iyzipay';
 import { env } from '../../config/env';
+
+export const PLAN_PRICES: Record<string, number> = {
+  BASIC: 1499,
+  PREMIUM: 2999,
+  VIP: 4999,
+};
 
 export const getMySubscription = async (userId: string) => {
   return await prisma.subscription.findUnique({

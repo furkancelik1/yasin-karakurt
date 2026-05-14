@@ -5,10 +5,11 @@ const validate = (schema) => {
     return (req, res, next) => {
         const result = schema.safeParse(req.body);
         if (!result.success) {
+            const flatErrors = result.error.flatten().fieldErrors;
+            const firstError = Object.values(flatErrors).flat()?.[0] || 'Geçersiz istek verisi';
             res.status(400).json({
                 success: false,
-                message: 'Geçersiz istek verisi',
-                errors: result.error.flatten().fieldErrors,
+                message: firstError,
             });
             return;
         }

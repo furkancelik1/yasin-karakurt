@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const PLANS = [
   {
-    id:       'basic',
+    id:       'BASIC',
     name:     'Başlangıç',
     subtitle: 'Temel dönüşüm paketi',
     price:    '1.499',
@@ -34,7 +34,7 @@ const PLANS = [
     ],
   },
   {
-    id:       'premium',
+    id:       'PREMIUM',
     name:     'Profesyonel',
     subtitle: 'En çok tercih edilen plan',
     price:    '2.999',
@@ -56,7 +56,7 @@ const PLANS = [
     ],
   },
   {
-    id:       'vip',
+    id:       'VIP',
     name:     'VIP',
     subtitle: 'Sınırsız destek & hız',
     price:    '4.999',
@@ -83,6 +83,11 @@ export function PricingSection() {
   const ref    = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-10% 0px' });
   const { user } = useAuth();
+
+  const getPlanHref = (planId: string) => {
+    if (!user) return `/login?redirect=/dashboard/checkout&plan=${planId}`;
+    return `/dashboard/checkout?plan=${planId}`;
+  };
 
   return (
     <section
@@ -122,7 +127,7 @@ export function PricingSection() {
         {/* ── Kart grid ── */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
           {PLANS.map((plan, i) => {
-            const planHref = `/register?plan=${plan.id}`;
+            const planHref = getPlanHref(plan.id);
 
             return (
             <motion.div

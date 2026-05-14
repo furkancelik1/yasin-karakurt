@@ -3,10 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cancelSubscription = exports.verifySubscriptionPayment = exports.createOrUpdateSubscription = exports.getMySubscription = void 0;
+exports.cancelSubscription = exports.verifySubscriptionPayment = exports.createOrUpdateSubscription = exports.getMySubscription = exports.PLAN_PRICES = void 0;
 const database_1 = __importDefault(require("../../config/database"));
-const iyzipay_1 = require("../../config/iyzipay"); // { } eklendi
+const iyzipay_1 = require("../../config/iyzipay");
 const env_1 = require("../../config/env");
+exports.PLAN_PRICES = {
+    BASIC: 1499,
+    PREMIUM: 2999,
+    VIP: 4999,
+};
 const getMySubscription = async (userId) => {
     return await database_1.default.subscription.findUnique({
         where: { userId },

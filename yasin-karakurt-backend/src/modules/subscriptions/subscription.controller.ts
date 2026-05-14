@@ -15,23 +15,31 @@ export const getMy = async (req: AuthRequest, res: Response, next: NextFunction)
 export const initiate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const plan = req.body.plan as SubscriptionPlan | undefined;
+    console.log('📦 GELEN PLAN:', plan);
+
     if (!plan || !['BASIC', 'PREMIUM', 'VIP'].includes(plan)) {
-      res.status(400).json({ success: false, message: 'Geçerli bir plan seçin: BASIC, PREMIUM, VIP' });
+      console.error('❌ GEÇERSİZ PLAN:', plan);
+      res.status(400).json({ success: false, message: `Geçerli bir plan seçin: BASIC, PREMIUM, VIP. Gelen: ${plan}` });
       return;
     }
+
     const data = await subService.createOrUpdateSubscription(req.user!.sub, plan);
+    console.log('📋 SERVICE DÖNDÜ:', data);
+
     if (data.error) {
       res.status(200).json({ success: false, message: data.error });
       return;
     }
+
     res.status(201).json({
       success: true,
-      data: { 
+      data: {
         checkoutFormContent: data.checkoutFormContent,
-        paymentPageUrl: data.paymentPageUrl 
+        paymentPageUrl: data.paymentPageUrl,
       },
     });
   } catch (err) {
+    console.error('💥 INITIATE CATCH:', err);
     next(err);
   }
 };
