@@ -12,7 +12,7 @@ router.get('/summary/:userId', auth_middleware_1.authenticate, (0, auth_middlewa
 router.get('/trainer', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), checkin_controller_1.getAllForTrainer);
 router.get('/client/:userId', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), checkin_controller_1.getCheckInsByUserId);
 router.patch('/:id/review', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), checkin_controller_1.reviewCheckin);
-router.get('/', checkin_controller_1.getAllCheckins);
-router.get('/:id', checkin_controller_1.getCheckinById);
-router.patch('/:id/status', checkin_controller_1.updateCheckinStatus);
+router.get('/', auth_middleware_1.authenticate, checkin_controller_1.getAllCheckins);
+router.get('/:id', auth_middleware_1.authenticate, checkin_controller_1.getCheckinById);
+router.patch('/:id/status', auth_middleware_1.authenticate, (0, auth_middleware_1.authorize)('TRAINER', 'ADMIN'), checkin_controller_1.updateCheckinStatus);
 exports.default = router;

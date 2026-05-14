@@ -6,6 +6,7 @@ import { useReactToPrint } from 'react-to-print';
 import { motion } from 'framer-motion';
 import { Utensils, Calendar, Clock, Beef, Croissant, Droplets, CheckCircle, Circle, Plus, Loader2, Printer, FileDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { toast } from 'sonner';
 import api from '@/lib/api';
 
 interface Meal {
@@ -241,12 +242,15 @@ export default function BeslenmePage() {
 
   const addWater = async () => {
     setWaterLoading(true);
+    const previousAmount = waterAmount;
+    setWaterAmount(prev => prev + 250);
     try {
       await api.post('/water/log', { amount: 250 });
-      setWaterAmount(prev => prev + 250);
       router.refresh();
     } catch (error) {
       console.error('Su ekleme hatası:', error);
+      setWaterAmount(previousAmount);
+      toast.error('Su eklenirken bir hata oluştu.');
     } finally {
       setWaterLoading(false);
     }

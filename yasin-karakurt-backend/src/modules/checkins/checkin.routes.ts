@@ -25,8 +25,8 @@ router.get('/trainer', authenticate, authorize('TRAINER', 'ADMIN'), getAllForTra
 router.get('/client/:userId', authenticate, authorize('TRAINER', 'ADMIN'), getCheckInsByUserId);
 router.patch('/:id/review', authenticate, authorize('TRAINER', 'ADMIN'), reviewCheckin);
 
-router.get('/', getAllCheckins);
-router.get('/:id', getCheckinById);
-router.patch('/:id/status', updateCheckinStatus);
+router.get('/', authenticate, getAllCheckins);
+router.get('/:id', authenticate, getCheckinById);
+router.patch('/:id/status', authenticate, authorize('TRAINER', 'ADMIN'), updateCheckinStatus);
 
 export default router;

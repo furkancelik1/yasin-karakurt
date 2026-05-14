@@ -169,17 +169,7 @@ const getAllCheckins = async (req, res) => {
     }
 };
 exports.getAllCheckins = getAllCheckins;
-const getAllForTrainer = async (req, res) => {
-    try {
-        const checkins = await CheckInService.getTrainerCheckins();
-        res.status(200).json({ success: true, data: checkins });
-    }
-    catch (error) {
-        console.error('Trainer check-inleri çekilirken hata:', error);
-        res.status(500).json({ success: false, message: 'Sunucu hatası.' });
-    }
-};
-exports.getAllForTrainer = getAllForTrainer;
+exports.getAllForTrainer = exports.getAllCheckins;
 const getCheckinById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -402,7 +392,7 @@ const getCheckInSummary = async (req, res) => {
             : null;
         const weeksSinceFirst = Math.ceil((new Date().getTime() - new Date(checkins[0].submittedAt).getTime()) / (7 * 24 * 60 * 60 * 1000)) || 1;
         const continuityScore = Math.min(100, Math.round((checkins.length / weeksSinceFirst) * 100));
-        const latestRating = checkins[checkins.length - 1]?.rating || checkins.reverse().find(c => c.rating)?.rating || null;
+        const latestRating = checkins[checkins.length - 1]?.rating || [...checkins].reverse().find(c => c.rating)?.rating || null;
         res.status(200).json({
             success: true,
             data: {
