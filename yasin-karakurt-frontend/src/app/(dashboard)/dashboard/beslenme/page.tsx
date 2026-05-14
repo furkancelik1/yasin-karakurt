@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useReactToPrint } from 'react-to-print';
 import { motion } from 'framer-motion';
-import { Utensils, Calendar, Clock, Beef, Croissant, Droplets, CheckCircle, Circle, Plus, Loader2, Printer, FileDown } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { Utensils, Calendar, Clock, Beef, Croissant, Droplets, CheckCircle, Circle, Plus, Loader2, Printer, FileDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -38,162 +38,7 @@ interface ApiResponse {
   data: NutritionPlan | null;
 }
 
-const interBoldBase64 = `AAEALAAAAABAAQAAAJRgAAIlQoGI2WgXY7xNmkJ2l8D/+fzB/m2YQAIAAAIABgAAAABAAIRkQwVEAABAAABAAIDFAAJABIAAQADAAQACQASAAOAADAAMAAkAEgAHAAOAAsADwATABcAGAAZAB4AHwAgACEAIQAjACQAJQAmACcAKAApACsALAAuAC8AMAAzADQAOAA4ADkAOwA8AD0APgA/AD8AQABCAEIARABFAEYARwBIAEkAPABJAE4ATwBRAFJAVEBVQFZAV0BYQFlAWUBaQFtAXEBdQF5AX0BgcGBwYHRgd2B4YHhgeWB5YHlgeWB5YHlgeXB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAdoB3AHbAdsB3AHbAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHYAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YHYAdmB2YGYAdmBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAdgBmIOYAZiDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIA=`;
-
-const interNormalBase64 = `AAEALAAAAABAAQAAAJRgAAIlQoGI2WgXY7xNmkJ2l8D/+fzB/m2YQAIAAAIABgAAAABAAIRkQwVEAABAAABAAIDFAAJABIAAQADAAQACQASAAOAADAAMAAkAEgAHAAOAAsADwATABcAGAAZAB4AHwAgACEAIQAjACQAJQAmACcAKAApACsALAAuAC8AMAAzADQAOAA4ADkAOwA8AD0APgA/AD8AQABCAEIARABFAEYARwBIAEkAPABJAE4ATwBRAFJAVEBVQFZAV0BYQFlAWUBaQFtAXEBdQF5AX0BgcGBwYHRgd2B4YHhgeWB5YHlgeWB5YHlgeXB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAeYB5gHmAdoB3AHbAdsB3AHbAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdoB2gHaAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdkB2QHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHZAdmB2YHYAdmBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAZgBmIGYAdgBmIOYAZiDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIGYg5iDmIA=`;
-
-function fixTurkish(text: string): string {
-  return text
-    .replace(/ğ/g, 'ğ')
-    .replace(/Ğ/g, 'Ğ')
-    .replace(/ş/g, 'ş')
-    .replace(/Ş/g, 'Ş')
-    .replace(/ı/g, 'ı')
-    .replace(/İ/g, 'İ')
-    .replace(/ç/g, 'ç')
-    .replace(/Ç/g, 'Ç')
-    .replace(/ö/g, 'ö')
-    .replace(/Ö/g, 'Ö')
-    .replace(/ü/g, 'ü')
-    .replace(/Ü/g, 'Ü');
-}
-
-function generatePDF(plan: NutritionPlan, clientNameParam?: string): jsPDF {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  let y = 20;
-
-  doc.addFileToVFS('Inter-Bold.ttf', interBoldBase64);
-  doc.addFont('Inter-Bold.ttf', 'Inter', 'bold');
-  doc.addFileToVFS('Inter-Regular.ttf', interNormalBase64);
-  doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
-  doc.setFont('Inter');
-
-  doc.setFillColor(212, 175, 55);
-  doc.rect(0, 0, pageWidth, 35, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('Inter', 'bold');
-  doc.text(fixTurkish('Yasin Karakurt Coaching'), margin, 18);
-  doc.setFontSize(12);
-  doc.setFont('Inter', 'normal');
-  doc.text(fixTurkish('Kişisel Beslenme Programı'), margin, 28);
-
-  if (clientNameParam) {
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text(`${fixTurkish(clientNameParam)}`, pageWidth - margin, 18, { align: 'right' });
-  }
-  doc.setTextColor(255, 255, 255);
-  doc.text(fixTurkish(new Date().toLocaleDateString('tr-TR')), pageWidth - margin, 28, { align: 'right' });
-
-  y = 50;
-  doc.setTextColor(26, 26, 26);
-  doc.setFontSize(14);
-  doc.setFont('Inter', 'bold');
-  doc.text(fixTurkish(plan.title || 'Beslenme Programı'), margin, y);
-
-  y += 15;
-
-  const cardWidth = (contentWidth - 15) / 4;
-  const cardHeight = 40;
-
-  const colors = [
-    { bg: [255, 248, 230], title: '#D4AF37', value: '#1A1A1A', label: 'Protein' },
-    { bg: [230, 255, 240], title: '#4CAF50', value: '#1A1A1A', label: 'Karbonhidrat' },
-    { bg: [230, 245, 255], title: '#2196F3', value: '#1A1A1A', label: 'Yağ' },
-    { bg: [255, 245, 230], title: '#D4AF37', value: '#1A1A1A', label: 'Kalori' },
-  ];
-
-  const values = [`${plan.protein}g`, `${plan.carbs}g`, `${plan.fat}g`, `${plan.targetCalories}`];
-
-  for (let i = 0; i < 4; i++) {
-    const x = margin + i * (cardWidth + 5);
-doc.setFillColor(colors[i].bg[0], colors[i].bg[1], colors[i].bg[2]);    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'S');
-
-    doc.setFontSize(8);
-    doc.setFont('Inter', 'normal');
-    const textColor = colors[i].title === '#D4AF37' ? [212, 175, 55] : [33, 150, 243];
-doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text(fixTurkish(colors[i].label), x + cardWidth / 2, y + 12, { align: 'center' });
-
-    doc.setFontSize(16);
-    doc.setFont('Inter', 'bold');
-    doc.setTextColor(26, 26, 26);
-    doc.text(values[i], x + cardWidth / 2, y + 28, { align: 'center' });
-  }
-
-  y += cardHeight + 15;
-
-  const tableStartY = y;
-  const rowHeight = 10;
-  const colWidths = [60, 30, contentWidth - 90];
-
-  doc.setFillColor(26, 26, 26);
-  doc.rect(margin, y, contentWidth, rowHeight, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont('Inter', 'bold');
-  doc.text(fixTurkish('Öğün Adı'), margin + 5, y + 7);
-  doc.text(fixTurkish('Saat'), margin + colWidths[0] + 5, y + 7);
-  doc.text(fixTurkish('İçerik'), margin + colWidths[0] + colWidths[1] + 5, y + 7);
-
-  y += rowHeight;
-
-  const sortedMeals = [...plan.meals].sort((a, b) => a.order - b.order);
-
-  sortedMeals.forEach((meal, index) => {
-    doc.setFillColor(index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250);
-    doc.rect(margin, y, contentWidth, rowHeight, 'F');
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.1);
-    doc.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
-
-    doc.setTextColor(26, 26, 26);
-    doc.setFontSize(9);
-    doc.setFont('Inter', 'bold');
-    doc.text(fixTurkish(meal.name), margin + 5, y + 7);
-    doc.setFont('Inter', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(meal.time, margin + colWidths[0] + 5, y + 7);
-    doc.setTextColor(50, 50, 50);
-    const content = meal.content ? fixTurkish(meal.content.substring(0, 50)) : '-';
-    doc.text(content, margin + colWidths[0] + colWidths[1] + 5, y + 7);
-
-    y += rowHeight;
-  });
-
-  y += 10;
-
-  if (plan.notes) {
-    doc.setFillColor(245, 245, 245);
-    doc.roundedRect(margin, y, contentWidth, 30, 2, 2, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.roundedRect(margin, y, contentWidth, 30, 2, 2, 'S');
-    doc.setTextColor(26, 26, 26);
-    doc.setFontSize(9);
-    doc.setFont('Inter', 'bold');
-    doc.text(fixTurkish('Koç Notları'), margin + 5, y + 8);
-    doc.setFont('Inter', 'normal');
-    doc.setFontSize(8);
-    const noteLines = doc.splitTextToSize(fixTurkish(plan.notes), contentWidth - 10);
-    doc.text(noteLines, margin + 5, y + 16);
-  }
-
-  y = 280;
-  doc.setFillColor(212, 175, 55);
-  doc.rect(0, y - 5, pageWidth, 25, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
-  doc.text(fixTurkish('Yasin Karakurt Coaching - Profesyonel Koçluk Hizmetleri'), pageWidth / 2, y + 3, { align: 'center' });
-  doc.text(fixTurkish(new Date().toLocaleDateString('tr-TR')), pageWidth / 2, y + 10, { align: 'center' });
-
-  return doc;
-}
+const COLORS = ['#eab308', '#22c55e', '#3b82f6'];
 
 export default function BeslenmePage() {
   const router = useRouter();
@@ -201,15 +46,10 @@ export default function BeslenmePage() {
   const [loading, setLoading] = useState(true);
   const [waterAmount, setWaterAmount] = useState(0);
   const [waterLoading, setWaterLoading] = useState(false);
-  const [clientName, setClientName] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const dailyGoal = 3000;
-
-  const printer = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `Beslenme_Plani_${clientName || 'Danisan'}`,
-  });
 
   useEffect(() => {
     const fetchActivePlan = async () => {
@@ -256,19 +96,34 @@ export default function BeslenmePage() {
     }
   };
 
-  const handleDownloadPDF = useCallback(async () => {
-    if (!plan) return;
-    setPdfLoading(true);
+  const toggleMeal = async (mealId: string) => {
+    setUpdating(mealId);
     try {
-      const doc = generatePDF(plan, clientName || undefined);
-      const fileName = `Beslenme_Plani_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+      const { data: res } = await api.patch<{ success: boolean; data: Meal }>(
+        `/nutrition/meal/${mealId}/toggle`
+      );
+      if (res.success && plan) {
+        setPlan({
+          ...plan,
+          meals: plan.meals.map(m =>
+            m.id === mealId
+              ? { ...m, isDone: res.data.isDone }
+              : m
+          ),
+        });
+        toast.success(res.data.isDone ? 'Öğün tamamlandı!' : 'Öğün iptal edildi.');
+      }
     } catch (error) {
-      console.error('PDF oluşturma hatası:', error);
+      toast.error('Güncelleme sırasında hata oluştu.');
     } finally {
-      setPdfLoading(false);
+      setUpdating(null);
     }
-  }, [plan, clientName]);
+  };
+
+  const printer = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Beslenme_Plani`,
+  });
 
   const waterPercentage = Math.min((waterAmount / dailyGoal) * 100, 100);
 
@@ -309,8 +164,17 @@ export default function BeslenmePage() {
     );
   }
 
+  const macroData = [
+    { name: 'Protein', value: plan.protein, color: COLORS[0] },
+    { name: 'Karbonhidrat', value: plan.carbs, color: COLORS[1] },
+    { name: 'Yağ', value: plan.fat, color: COLORS[2] },
+  ];
+
+  const completedMeals = plan.meals.filter(m => m.isDone).length;
+  const progress = plan.meals.length > 0 ? (completedMeals / plan.meals.length) * 100 : 0;
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6" ref={printRef as any}>
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-display text-white uppercase tracking-wide">
@@ -319,23 +183,18 @@ export default function BeslenmePage() {
           <p className="text-ash/50 mt-2 text-sm">Sizin için hazırlanan kişisel beslenme planınız</p>
         </div>
         <button
-          onClick={handleDownloadPDF}
-          disabled={pdfLoading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors text-sm font-bold"
+          onClick={() => printer?.()}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 text-ash/60 hover:text-white transition-colors text-sm"
         >
-          {pdfLoading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <FileDown size={16} />
-          )}
-          İndir PDF
+          <Printer size={16} />
+          Yazdır
         </button>
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-emerald-500/10 bg-charcoal/60 p-6 shadow-xl mb-6"
+        className="rounded-2xl border border-emerald-500/10 bg-charcoal/60 p-6 shadow-xl"
       >
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -386,58 +245,122 @@ export default function BeslenmePage() {
         )}
       </motion.div>
 
-      {plan.meals && plan.meals.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/5 bg-charcoal/40 p-6"
-        >
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Clock size={16} className="text-emerald-400" />
-            Öğünler
-          </h3>
-          <div className="space-y-3">
-            {plan.meals.sort((a, b) => a.order - b.order).map((meal) => (
-              <div
-                key={meal.id}
-                className={`p-4 rounded-xl border ${
-                  meal.isDone
-                    ? 'bg-emerald-500/5 border-emerald-500/20'
-                    : 'bg-white/[0.02] border-white/5'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 ${meal.isDone ? 'text-emerald-400' : 'text-ash/40'}`}>
-                    {meal.isDone ? <CheckCircle size={18} /> : <Circle size={18} />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className={`font-bold ${meal.isDone ? 'text-emerald-400 line-through' : 'text-white'}`}>
-                        {meal.name}
-                      </p>
-                      <span className="text-xs text-ash/50">{meal.time}</span>
-                    </div>
-                    <p className="text-ash/50 text-sm mt-1">{meal.content}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-charcoal/30 border border-white/5 rounded-2xl p-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
+            Makro Dağılımı
+          </h2>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={macroData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={70}
+                  paddingAngle={2}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {macroData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => [`${value}g`, '']}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        </motion.div>
-      )}
+        </div>
 
-      <div className="flex items-center gap-2 text-ash/40 text-xs mt-6">
-        <Clock size={12} />
-        <span>Son güncelleme: {new Date(plan.updatedAt).toLocaleString('tr-TR')}</span>
+        <div className="bg-charcoal/30 border border-white/5 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              Günlük İlerleme
+            </h2>
+            <span className="text-ash/50 text-xs">
+              {completedMeals}/{plan.meals.length} öğün
+            </span>
+          </div>
+
+          <div className="h-3 bg-charcoal rounded-full overflow-hidden mb-4">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+            />
+          </div>
+
+          <p className="text-ash/40 text-xs">
+            {progress < 50 ? 'Henüz yolun başında!' :
+             progress < 100 ? 'İyi gidiyorsun!' :
+             'Tebrikler, günü tamamladın!'}
+          </p>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-sky-500/10 bg-charcoal/40 p-6 mt-6"
-      >
+      {plan.meals && plan.meals.length > 0 && (
+        <div className="rounded-2xl border border-white/5 bg-charcoal/30 p-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
+            Öğün Listesi
+          </h2>
+          <div className="space-y-3">
+            {plan.meals.sort((a, b) => a.order - b.order).map((meal) => (
+              <motion.div
+                key={meal.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                  meal.isDone
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-white/5 border-white/5 hover:border-white/10'
+                }`}
+              >
+                <button
+                  onClick={() => toggleMeal(meal.id)}
+                  disabled={updating === meal.id}
+                  className={`w-5 h-5 rounded flex items-center justify-center transition-all shrink-0 ${
+                    meal.isDone
+                      ? 'bg-emerald-500 text-white'
+                      : 'border-2 border-white/30 hover:border-white/60'
+                  }`}
+                >
+                  {updating === meal.id ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : meal.isDone ? (
+                    <Check size={12} />
+                  ) : null}
+                </button>
+
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className={`font-medium text-sm ${meal.isDone ? 'text-emerald-400 line-through' : 'text-white'}`}>
+                      {meal.name}
+                    </p>
+                    {meal.time && (
+                      <span className="text-xs text-ash/40">• {meal.time}</span>
+                    )}
+                  </div>
+                  {meal.content && (
+                    <p className="text-ash/50 text-xs mt-0.5">{meal.content}</p>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-sky-500/10 bg-charcoal/40 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Droplets size={16} className="text-sky-400" />
@@ -481,26 +404,20 @@ export default function BeslenmePage() {
             {waterLoading ? (
               <Loader2 size={24} className="text-sky-400 animate-spin" />
             ) : (
-              <motion.div
-                whileTap={{ scale: 0.9 }}
-              >
+              <motion.div whileTap={{ scale: 0.9 }}>
                 <Plus size={24} className="text-sky-400" />
               </motion.div>
             )}
           </button>
         </div>
 
-        <p className="text-center text-ash/50 text-xs mt-3 no-print">+250ml Su Ekle</p>
-      </motion.div>
-
-      <div ref={printRef} className="hidden print:block">
-        <div className="p-8 bg-white text-black">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-black">Yasin Karakurt Coaching</h1>
-            <p className="text-sm text-gray-600">Kişisel Beslenme Programı</p>
-          </div>
-        </div>
+        <p className="text-center text-ash/50 text-xs mt-3">+250ml Su Ekle</p>
       </div>
+
+      <p className="text-ash/40 text-xs flex items-center gap-2">
+        <Clock size={12} />
+        Son güncelleme: {new Date(plan.updatedAt).toLocaleString('tr-TR')}
+      </p>
     </div>
   );
 }

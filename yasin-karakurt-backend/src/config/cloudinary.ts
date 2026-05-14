@@ -27,6 +27,14 @@ cloudinary.config({
 export const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Sadece JPEG, PNG ve WebP formatındaki resimler yüklenebilir'));
+    }
+  },
 });
 
 export default cloudinary;
