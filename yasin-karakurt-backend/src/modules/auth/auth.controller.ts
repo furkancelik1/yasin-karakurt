@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
+import { prisma } from '../../config/database';
 import { AuthRequest } from '../../types';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -45,7 +46,16 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
 
 export const me = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    res.json({ success: true, data: req.user });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.sub },
+      include: { profile: true },
+    });
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+      return;
+    }
+    const { password, refreshToken, ...safeUser } = user;
+    res.json({ success: true, data: safeUser });
   } catch (err) {
     next(err);
   }

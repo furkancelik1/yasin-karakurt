@@ -43,7 +43,8 @@ export const register = async (dto: RegisterDto) => {
   const accessToken = signAccessToken(jwtPayload);
   const refreshToken = signRefreshToken(jwtPayload);
 
-  await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
+  const hashedRefresh = await bcrypt.hash(refreshToken, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { refreshToken: hashedRefresh } });
 
   return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role, profile: user.profile } };
 };
@@ -62,7 +63,8 @@ export const login = async (dto: LoginDto) => {
   const accessToken = signAccessToken(jwtPayload);
   const refreshToken = signRefreshToken(jwtPayload);
 
-  await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
+  const hashedRefresh = await bcrypt.hash(refreshToken, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { refreshToken: hashedRefresh } });
 
   return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role, profile: user.profile } };
 };
@@ -75,14 +77,18 @@ export const refreshTokens = async (token: string) => {
     throw new AppError('Geçersiz refresh token', 401);
   }
 
-  const user = await prisma.user.findFirst({ where: { id: payload.sub, refreshToken: token } });
-  if (!user) throw new AppError('Geçersiz refresh token', 401);
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user || !user.refreshToken) throw new AppError('Geçersiz refresh token', 401);
+
+  const valid = await bcrypt.compare(token, user.refreshToken);
+  if (!valid) throw new AppError('Geçersiz refresh token', 401);
 
   const jwtPayload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
   const accessToken = signAccessToken(jwtPayload);
   const refreshToken = signRefreshToken(jwtPayload);
 
-  await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
+  const hashedRefresh = await bcrypt.hash(refreshToken, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { refreshToken: hashedRefresh } });
   return { accessToken, refreshToken };
 };
 

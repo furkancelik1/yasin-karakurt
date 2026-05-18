@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import process from 'node:process';
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Veritabanı "Premium" test verileriyle dolduruluyor...');
+  const password = await bcrypt.hash('Test123!', 12);
 
   // Yasin Hoca (Eğitmen)
   await prisma.user.upsert({
@@ -11,7 +13,7 @@ async function main() {
     update: {},
     create: {
       email: 'yasin@ykplatform.com',
-      password: 'hashed_password_placeholder', 
+      password: password, 
       role: 'TRAINER',
       profile: {
         create: {
@@ -28,7 +30,7 @@ async function main() {
     update: {},
     create: {
       email: 'ahmet@test.com',
-      password: 'hashed_password_placeholder',
+      password: password,
       role: 'CLIENT',
       profile: {
         create: { firstName: 'Ahmet Furkan', lastName: 'Çelik' }
@@ -55,7 +57,7 @@ async function main() {
     update: {},
     create: {
       email: 'burak@test.com',
-      password: 'hashed_password_placeholder',
+      password: password,
       role: 'CLIENT',
       profile: {
         create: { firstName: 'Burak', lastName: 'Yılmaz' }
@@ -82,7 +84,7 @@ async function main() {
     update: {},
     create: {
       email: 'can@test.com',
-      password: 'hashed_password_placeholder',
+      password: password,
       role: 'CLIENT',
       profile: {
         create: { firstName: 'Can', lastName: 'Demir' }

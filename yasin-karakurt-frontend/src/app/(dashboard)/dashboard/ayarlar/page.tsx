@@ -34,6 +34,8 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
 export default function AyarlarPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -81,6 +83,12 @@ export default function AyarlarPage() {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -95,8 +103,6 @@ export default function AyarlarPage() {
     }
   };
 
-  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-  
   const isPasswordValid = (password: string) => PASSWORD_REGEX.test(password);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
