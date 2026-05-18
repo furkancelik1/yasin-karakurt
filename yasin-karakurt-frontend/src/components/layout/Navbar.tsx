@@ -60,10 +60,10 @@ export function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/giris">
+          <Link href="/login">
             <Button variant="ghost" size="sm">Giriş</Button>
           </Link>
-          <Link href="/uye-ol">
+          <Link href="/register">
             <Button variant="gold" size="sm">Başla</Button>
           </Link>
         </div>
@@ -101,10 +101,10 @@ export function Navbar() {
                 </li>
               ))}
               <li className="flex flex-col gap-3 pt-4 border-t border-white/5">
-                <Link href="/giris"  onClick={() => setMenuOpen(false)}>
+                <Link href="/login"  onClick={() => setMenuOpen(false)}>
                   <Button variant="ghost" size="md" className="w-full">Giriş</Button>
                 </Link>
-                <Link href="/uye-ol" onClick={() => setMenuOpen(false)}>
+                <Link href="/register" onClick={() => setMenuOpen(false)}>
                   <Button variant="gold"  size="md" className="w-full">Başla</Button>
                 </Link>
               </li>

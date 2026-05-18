@@ -75,7 +75,7 @@ export default function ProgramPage() {
     );
   }
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -117,7 +117,7 @@ export default function ProgramPage() {
                 <span className="text-ash/70">Program Dosyası</span>
               </div>
               <a
-                href={`${API_URL}${trainingProgram.fileUrl}`}
+                href={trainingProgram.fileUrl.startsWith('http://') || trainingProgram.fileUrl.startsWith('https://') ? trainingProgram.fileUrl : `${API_URL}${trainingProgram.fileUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gold/10 border border-gold/20 text-gold hover:bg-gold/20 transition-colors text-sm font-bold uppercase tracking-widest"

@@ -11,10 +11,9 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').rep
 
 const getImageUrl = (url: string | null) => {
   if (!url) return '';
-  // URL içinde tam yol olsa da (uploads/...) veya sadece dosya adı olsa da (photo-...) 
-  // sadece en sondaki dosya adını alıp doğru klasörle birleştirir.
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
   const filename = url.split('/').pop(); 
-  return `http://localhost:4000/uploads/checkins/${filename}`;
+  return `${API_URL}/uploads/checkins/${filename}`;
 };
 // ── Filter config ─────────────────────────────────────────────────────────────
 type FilterValue = 'ALL' | 'PENDING' | 'REVIEWED';

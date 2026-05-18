@@ -26,6 +26,7 @@ const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:40
 
 const getImageUrl = (raw: string | null | undefined): string => {
   if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
   const filename = raw.split('/').pop()?.split('?')[0] ?? '';
   return `${BACKEND_BASE}/uploads/checkins/${filename}`;
 };

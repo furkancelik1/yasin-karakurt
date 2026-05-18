@@ -14,6 +14,11 @@ export const Sidebar = () => {
 
   const isTrainerOrAdmin = user?.role === "TRAINER" || user?.role === "ADMIN";
 
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/login';
+  };
+
   const trainerLinks = [
     { name: "Danışanlar", href: "/danisanlar", icon: Users },
     { name: "Check-inler", href: "/checkins", icon: ClipboardList },
@@ -103,7 +108,7 @@ const clientLinks = [
             <span className="font-medium">Ayarlar</span>
           </Link>
           <button 
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all"
           >
             <LogOut size={20} />
@@ -170,7 +175,7 @@ const clientLinks = [
               <button 
                 onClick={() => {
                   setIsOpen(false);
-                  logout();
+                  handleLogout();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-4 rounded-xl text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all"
               >

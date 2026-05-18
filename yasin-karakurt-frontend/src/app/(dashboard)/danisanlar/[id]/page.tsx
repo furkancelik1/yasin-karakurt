@@ -104,6 +104,12 @@ function getStatusConfig(status: CheckIn['status']) {
   }
 }
 
+const getPhotoUrl = (url: string): string => {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '');
+  return `${base}${url}`;
+};
+
 function PhotoGallery({ photos }: { photos: CheckInPhoto[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -120,7 +126,7 @@ function PhotoGallery({ photos }: { photos: CheckInPhoto[] }) {
             className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 hover:border-gold/40 transition-all shrink-0 group"
           >
             <img
-              src={`${API_URL}${photo.url}`}
+              src={getPhotoUrl(photo.url)}
               alt={`Gelişim fotoğrafı ${idx + 1}`}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -150,7 +156,7 @@ function PhotoGallery({ photos }: { photos: CheckInPhoto[] }) {
               key={selectedIndex}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={`${API_URL}${photos[selectedIndex].url}`}
+              src={getPhotoUrl(photos[selectedIndex].url)}
               alt={`Fotoğraf ${selectedIndex + 1}`}
               className="max-h-[80vh] max-w-[90vw] object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
@@ -583,9 +589,9 @@ const [programs, setPrograms] = useState<UserProgram[]>([]);
                   </span>
                 </div>
                 <h3 className="text-white font-medium text-sm mb-2">{program.title}</h3>
-                {program.contentType === 'FILE' && program.fileUrl ? (
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_API_URL}${program.fileUrl}`}
+                  {program.contentType === 'FILE' && program.fileUrl ? (
+                    <a
+                      href={program.fileUrl.startsWith('http://') || program.fileUrl.startsWith('https://') ? program.fileUrl : `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace('/api/v1', '')}${program.fileUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-gold/70 hover:text-gold text-xs transition-colors"

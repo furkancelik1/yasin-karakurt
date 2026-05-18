@@ -26,6 +26,7 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').rep
 
 const getImageUrl = (url: string | null | undefined): string | undefined => {
   if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
   const filename = url.split('/').pop();
   return `${API_URL}/uploads/checkins/${filename}`;
 };
